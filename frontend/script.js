@@ -1,6 +1,8 @@
 // MovieHub - Frontend JavaScript
 
-const API_URL = 'http://localhost:5000/api';
+// API URL ni Render URL ga o'zgartirish
+const API_URL = 'https://movieehubbackend.onrender.com/api';
+
 const moviesGrid = document.getElementById('moviesGrid');
 const searchInput = document.getElementById('searchInput');
 const searchBtn = document.getElementById('searchBtn');
@@ -12,7 +14,7 @@ const ageMessage = document.getElementById('ageMessage');
 const ageYes = document.getElementById('ageYes');
 const ageNo = document.getElementById('ageNo');
 
-// Cheklovli yosh chegaralari (oson o'zgartirish uchun massiv)
+// Cheklovli yosh chegaralari
 const RESTRICTED_AGES = ['16+', '18+'];
 
 let currentMovie = null;
@@ -58,10 +60,13 @@ function renderMovies(movies) {
     return;
   }
 
+  // Base URL ni Render URL ga o'zgartirish
+  const baseUrl = 'https://movieehubbackend.onrender.com';
+
   moviesGrid.innerHTML = movies.map(movie => `
     <div class="movie-card" onclick="openMovie('${movie._id}')">
       <img 
-        src="${movie.rasm.startsWith('http') ? movie.rasm : API_URL.replace('/api', '') + movie.rasm}" 
+        src="${movie.rasm.startsWith('http') ? movie.rasm : baseUrl + movie.rasm}" 
         alt="${movie.nomi}"
         class="movie-poster"
         onerror="this.src='https://via.placeholder.com/300x400/222222/00ff88?text=No+Image'"
@@ -91,7 +96,6 @@ async function openMovie(movieId) {
     currentMovie = data.data;
     pendingVideoUrl = null;
 
-    // Yosh chegarasini tekshirish
     const ageRestriction = currentMovie.yoshChegarasi;
     if (RESTRICTED_AGES.includes(ageRestriction)) {
       showAgeModal(ageRestriction);
@@ -117,15 +121,13 @@ ageYes.addEventListener('click', () => {
 
 ageNo.addEventListener('click', () => {
   ageModal.classList.remove('active');
-  // Bosh sahifaga qaytarish
   window.scrollTo({ top: 0, behavior: 'smooth' });
-  // Modalni yopish
   movieModal.classList.remove('active');
 });
 
 // ==================== FILM DETALLARINI KO'RSATISH ====================
 function showMovieDetails(movie) {
-  const baseUrl = API_URL.replace('/api', '');
+  const baseUrl = 'https://movieehubbackend.onrender.com';
   const posterUrl = movie.rasm.startsWith('http') ? movie.rasm : baseUrl + movie.rasm;
 
   let videoHtml = '';
@@ -189,15 +191,13 @@ function playQism(movieId, index) {
   const movie = currentMovie;
   if (!movie || !movie.qismlar || !movie.qismlar[index]) return;
 
-  const baseUrl = API_URL.replace('/api', '');
+  const baseUrl = 'https://movieehubbackend.onrender.com';
   const videoUrl = baseUrl + movie.qismlar[index].video;
 
-  // Qism tugmalarini yangilash
   document.querySelectorAll('.qism-btn').forEach((btn, i) => {
     btn.classList.toggle('active', i === index);
   });
 
-  // Videoni yangilash
   const player = document.getElementById('moviePlayer');
   if (player) {
     player.src = videoUrl;
@@ -215,7 +215,6 @@ modalClose.addEventListener('click', () => {
   }
 });
 
-// Modal tashqarisiga bosilganda yopish
 movieModal.addEventListener('click', (e) => {
   if (e.target === movieModal) {
     movieModal.classList.remove('active');
