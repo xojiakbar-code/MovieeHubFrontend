@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MovieHub - Kino va Seriallar</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Font Awesome ikonkalar uchun -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+</head>
+<body>
+  <!-- Header / Navbar -->
+  <header class="header">
+    <div class="container">
+      <div class="header-content">
+        <a href="index.html" class="logo">
+          <i class="fas fa-film"></i>
+          <span>MovieHub</span>
+        </a>
+        
+        <div class="search-container">
+          <input 
+            type="text" 
+            id="searchInput" 
+            placeholder="Film nomi bo'yicha qidirish..." 
+            class="search-input"
+          />
+          <button id="searchBtn" class="search-btn">
+            <i class="fas fa-search"></i>
+          </button>
+        </div>
+        
+        <a href="admin.html" class="login-btn">
+          <i class="fas fa-user-shield"></i>
+          <span>Login</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Asosiy kontent -->
+  <main class="main-content">
+    <div class="container">
+      <div class="movies-grid" id="moviesGrid">
+        <!-- Filmlar kartochkalari JavaScript orqali yuklanadi -->
+      </div>
+    </div>
+  </main>
+
+  <!-- Film detallari uchun Modal -->
+  <div class="modal-overlay" id="movieModal">
+    <div class="modal-content">
+      <button class="modal-close" id="modalClose">&times;</button>
+      
+      <div class="modal-body" id="modalBody">
+        <!-- Film ma'lumotlari JavaScript orqali yuklanadi -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Yosh chegarasi tasdiqlash modal -->
+  <div class="modal-overlay" id="ageModal">
+    <div class="modal-content age-modal">
+      <div class="age-modal-content">
+        <h2><i class="fas fa-exclamation-triangle"></i> Yosh chegarasi</h2>
+        <p id="ageMessage">Yosh chegarasi haqida xabar</p>
+        <div class="age-buttons">
+          <button class="age-btn age-btn-yes" id="ageYes">Ha</button>
+          <button class="age-btn age-btn-no" id="ageNo">Yo'q</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
