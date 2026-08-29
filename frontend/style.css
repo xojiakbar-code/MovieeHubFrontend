@@ -1,33 +1,31 @@
 /* =========================================================
-   DESIGN TOKENS
-   Apple-inspired monochrome system: pure white surface,
-   near-black ink, a single neutral gray scale, and one
-   accent (Apple-blue) reserved for interactive states.
+   DARK THEME - MovieHub
    ========================================================= */
 :root {
-  /* Surfaces */
-  --color-bg: #ffffff;
-  --color-surface: #f5f5f7;
-  --color-surface-raised: #ffffff;
+  /* Surfaces - Dark */
+  --color-bg: #0a0a0a;
+  --color-surface: #1a1a1a;
+  --color-surface-raised: #222222;
+  --color-surface-hover: #2a2a2a;
 
-  /* Ink */
-  --color-text: #1d1d1f;
-  --color-text-secondary: #6e6e73;
-  --color-text-tertiary: #86868b;
+  /* Ink - Light */
+  --color-text: #f5f5f7;
+  --color-text-secondary: #a1a1a6;
+  --color-text-tertiary: #6e6e73;
 
   /* Lines */
-  --color-border: #d2d2d7;
-  --color-border-strong: #1d1d1f;
+  --color-border: #333333;
+  --color-border-strong: #555555;
 
-  /* Accent (used sparingly, for actionable elements only) */
-  --color-accent: #0071e3;
-  --color-accent-hover: #0077ed;
-  --color-danger: #ff3b30;
+  /* Accent */
+  --color-accent: #00ff88;
+  --color-accent-hover: #00cc6a;
+  --color-danger: #ff4444;
 
   /* Elevation */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.12);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.5);
 
   /* Radius */
   --radius-sm: 8px;
@@ -75,6 +73,7 @@ a {
 
 button {
   font-family: inherit;
+  cursor: pointer;
 }
 
 img {
@@ -106,7 +105,7 @@ img {
    HEADER
    ========================================================= */
 .header {
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(10, 10, 10, 0.85);
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
   border-bottom: 1px solid var(--color-border);
@@ -131,7 +130,7 @@ img {
   font-size: 1.4rem;
   font-weight: 600;
   letter-spacing: -0.01em;
-  color: var(--color-text);
+  color: var(--color-accent);
 }
 
 .logo i {
@@ -164,22 +163,23 @@ img {
 
 .search-input:focus {
   border-color: var(--color-accent);
-  background: var(--color-bg);
+  background: var(--color-surface-raised);
 }
 
 .search-btn {
   padding: 9px 20px;
-  background: var(--color-text);
-  border: 1px solid var(--color-text);
+  background: var(--color-accent);
+  border: 1px solid var(--color-accent);
   border-radius: 0 var(--radius-pill) var(--radius-pill) 0;
   color: var(--color-bg);
   cursor: pointer;
+  font-weight: 600;
   transition: background var(--duration) var(--ease);
 }
 
 .search-btn:hover {
-  background: var(--color-text-secondary);
-  border-color: var(--color-text-secondary);
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
 }
 
 .login-btn {
@@ -187,15 +187,15 @@ img {
   align-items: center;
   gap: 8px;
   padding: 8px 18px;
-  border: 1px solid var(--color-border-strong);
+  border: 1px solid var(--color-accent);
   border-radius: var(--radius-pill);
-  color: var(--color-text);
+  color: var(--color-accent);
   font-weight: 500;
   transition: background var(--duration) var(--ease), color var(--duration) var(--ease);
 }
 
 .login-btn:hover {
-  background: var(--color-text);
+  background: var(--color-accent);
   color: var(--color-bg);
 }
 
@@ -225,6 +225,7 @@ img {
 .movie-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-md);
+  border-color: var(--color-accent);
 }
 
 .movie-poster {
@@ -246,6 +247,7 @@ img {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: var(--color-text);
 }
 
 .movie-meta {
@@ -256,7 +258,7 @@ img {
 }
 
 .movie-genre {
-  color: var(--color-text-tertiary);
+  color: var(--color-accent);
   font-size: 0.75rem;
   margin-top: 4px;
 }
@@ -268,7 +270,7 @@ img {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(6px);
   z-index: 9999;
   justify-content: center;
@@ -285,7 +287,7 @@ img {
   width: 36px;
   height: 36px;
   border: 3px solid var(--color-border);
-  border-top-color: var(--color-text);
+  border-top-color: var(--color-accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -320,7 +322,7 @@ img {
   background: linear-gradient(
     100deg,
     var(--color-surface) 30%,
-    #ececec 50%,
+    #2a2a2a 50%,
     var(--color-surface) 70%
   );
   background-size: 200% 100%;
@@ -362,7 +364,7 @@ img {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(10px);
   z-index: 2000;
   justify-content: center;
@@ -375,7 +377,7 @@ img {
 }
 
 .modal-content {
-  background: var(--color-bg);
+  background: var(--color-surface-raised);
   border-radius: var(--radius-lg);
   max-width: 850px;
   width: 100%;
@@ -384,6 +386,7 @@ img {
   padding: 28px;
   position: relative;
   box-shadow: var(--shadow-lg);
+  border: 1px solid var(--color-border);
 }
 
 .modal-close {
@@ -406,7 +409,7 @@ img {
 }
 
 .modal-close:hover {
-  background: var(--color-text);
+  background: var(--color-accent);
   color: var(--color-bg);
 }
 
@@ -473,12 +476,13 @@ img {
 }
 
 .qism-btn:hover {
-  border-color: var(--color-text);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 
 .qism-btn.active {
-  background: var(--color-text);
-  border-color: var(--color-text);
+  background: var(--color-accent);
+  border-color: var(--color-accent);
   color: var(--color-bg);
 }
 
@@ -495,7 +499,7 @@ img {
 }
 
 .age-modal-content h2 {
-  color: var(--color-text);
+  color: var(--color-danger);
   font-size: 1.4rem;
   font-weight: 600;
   margin-bottom: 12px;
@@ -516,7 +520,7 @@ img {
 
 .age-btn {
   padding: 11px 32px;
-  border: 1px solid transparent;
+  border: none;
   border-radius: var(--radius-pill);
   font-size: 0.95rem;
   font-weight: 600;
@@ -526,18 +530,18 @@ img {
 }
 
 .age-btn-yes {
-  background: var(--color-text);
+  background: var(--color-accent);
   color: var(--color-bg);
 }
 
 .age-btn-yes:hover {
-  background: var(--color-text-secondary);
+  background: var(--color-accent-hover);
 }
 
 .age-btn-no {
-  background: var(--color-bg);
+  background: var(--color-surface);
   color: var(--color-text-secondary);
-  border-color: var(--color-border);
+  border: 1px solid var(--color-border);
 }
 
 .age-btn-no:hover {
@@ -551,18 +555,22 @@ img {
 .admin-login {
   max-width: 380px;
   margin: 48px auto;
-  background: var(--color-bg);
+  background: var(--color-surface-raised);
   padding: 32px;
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
 }
 
 .admin-login h2 {
   text-align: center;
   font-weight: 600;
-  color: var(--color-text);
+  color: var(--color-accent);
   margin-bottom: 26px;
+}
+
+.admin-login h2 i {
+  margin-right: 10px;
 }
 
 .form-group {
@@ -606,12 +614,12 @@ img {
 }
 
 .btn-primary {
-  background: var(--color-text);
+  background: var(--color-accent);
   color: var(--color-bg);
 }
 
 .btn-primary:hover {
-  background: var(--color-text-secondary);
+  background: var(--color-accent-hover);
 }
 
 .btn-danger {
@@ -632,7 +640,7 @@ img {
 
 .logout-btn {
   padding: 7px 18px;
-  background: var(--color-bg);
+  background: transparent;
   border: 1px solid var(--color-danger);
   border-radius: var(--radius-pill);
   color: var(--color-danger);
@@ -644,6 +652,117 @@ img {
 .logout-btn:hover {
   background: var(--color-danger);
   color: #fff;
+}
+
+.form-message {
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.form-message.success {
+  background: rgba(0, 255, 136, 0.1);
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent);
+}
+
+.form-message.error {
+  background: rgba(255, 68, 68, 0.1);
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger);
+}
+
+.movies-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.movie-item {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  transition: border-color var(--duration) var(--ease);
+}
+
+.movie-item:hover {
+  border-color: var(--color-accent);
+}
+
+.movie-item img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+}
+
+.movie-item h4 {
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+}
+
+.movie-item .movie-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.movie-item .movie-actions button {
+  flex: 1;
+  padding: 5px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: opacity var(--duration) var(--ease);
+}
+
+.movie-item .movie-actions .edit-btn {
+  background: var(--color-accent);
+  color: var(--color-bg);
+}
+
+.movie-item .movie-actions .delete-btn {
+  background: var(--color-danger);
+  color: #fff;
+}
+
+.movie-item .movie-actions button:hover {
+  opacity: 0.8;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.qism-item {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 8px;
+  background: var(--color-surface);
+  padding: 10px;
+  border-radius: var(--radius-sm);
+}
+
+.qism-item input {
+  flex: 1;
+}
+
+.qism-item .btn-danger {
+  padding: 6px 12px;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 30px 0;
 }
 
 /* =========================================================
@@ -684,5 +803,38 @@ img {
 
   .age-btn {
     width: 100%;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .qism-item {
+    flex-direction: column;
+  }
+
+  .movies-list {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .movies-grid,
+  .loading-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 10px;
+  }
+
+  .movie-poster {
+    height: 180px;
+  }
+
+  .logo {
+    font-size: 1.1rem;
+  }
+
+  .admin-login {
+    padding: 20px;
+    margin: 20px 10px;
   }
 }
