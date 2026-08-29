@@ -1,50 +1,30 @@
 /* =========================================================
-   DARK THEME - MovieHub
+   APPLE STYLE - MovieHub (White/Black)
    ========================================================= */
 :root {
-  /* Surfaces - Dark */
-  --color-bg: #0a0a0a;
-  --color-surface: #1a1a1a;
-  --color-surface-raised: #222222;
-  --color-surface-hover: #2a2a2a;
-
-  /* Ink - Light */
-  --color-text: #f5f5f7;
-  --color-text-secondary: #a1a1a6;
-  --color-text-tertiary: #6e6e73;
-
-  /* Lines */
-  --color-border: #333333;
-  --color-border-strong: #555555;
-
-  /* Accent */
-  --color-accent: #00ff88;
-  --color-accent-hover: #00cc6a;
-  --color-danger: #ff4444;
-
-  /* Elevation */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.5);
-
-  /* Radius */
+  --color-bg: #f5f5f7;
+  --color-surface: #ffffff;
+  --color-surface-raised: #ffffff;
+  --color-text: #1d1d1f;
+  --color-text-secondary: #6e6e73;
+  --color-text-tertiary: #86868b;
+  --color-border: #d2d2d7;
+  --color-border-strong: #1d1d1f;
+  --color-accent: #0071e3;
+  --color-accent-hover: #0077ed;
+  --color-danger: #ff3b30;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.12);
   --radius-sm: 8px;
   --radius-md: 14px;
   --radius-lg: 20px;
   --radius-pill: 999px;
-
-  /* Type */
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
-    Roboto, Helvetica, Arial, sans-serif;
-
-  /* Motion */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --ease: cubic-bezier(0.4, 0, 0.2, 1);
   --duration: 0.25s;
 }
 
-/* =========================================================
-   RESET
-   ========================================================= */
 *,
 *::before,
 *::after {
@@ -74,6 +54,8 @@ a {
 button {
   font-family: inherit;
   cursor: pointer;
+  border: none;
+  background: none;
 }
 
 img {
@@ -86,15 +68,6 @@ img {
   outline-offset: 2px;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.001ms !important;
-    transition-duration: 0.001ms !important;
-  }
-}
-
 .container {
   max-width: 1200px;
   margin: 0 auto;
@@ -105,7 +78,7 @@ img {
    HEADER
    ========================================================= */
 .header {
-  background: rgba(10, 10, 10, 0.85);
+  background: rgba(255, 255, 255, 0.8);
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
   border-bottom: 1px solid var(--color-border);
@@ -130,11 +103,12 @@ img {
   font-size: 1.4rem;
   font-weight: 600;
   letter-spacing: -0.01em;
-  color: var(--color-accent);
+  color: var(--color-text);
 }
 
-.logo i {
-  font-size: 1.5rem;
+.logo svg {
+  width: 28px;
+  height: 28px;
 }
 
 .search-container {
@@ -163,23 +137,32 @@ img {
 
 .search-input:focus {
   border-color: var(--color-accent);
-  background: var(--color-surface-raised);
+  background: var(--color-bg);
 }
 
 .search-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 9px 20px;
-  background: var(--color-accent);
-  border: 1px solid var(--color-accent);
+  background: var(--color-text);
   border-radius: 0 var(--radius-pill) var(--radius-pill) 0;
   color: var(--color-bg);
-  cursor: pointer;
-  font-weight: 600;
   transition: background var(--duration) var(--ease);
 }
 
 .search-btn:hover {
-  background: var(--color-accent-hover);
-  border-color: var(--color-accent-hover);
+  background: var(--color-text-secondary);
+}
+
+.search-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .login-btn {
@@ -187,16 +170,26 @@ img {
   align-items: center;
   gap: 8px;
   padding: 8px 18px;
-  border: 1px solid var(--color-accent);
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-pill);
-  color: var(--color-accent);
+  color: var(--color-text);
   font-weight: 500;
   transition: background var(--duration) var(--ease), color var(--duration) var(--ease);
 }
 
 .login-btn:hover {
-  background: var(--color-accent);
+  background: var(--color-text);
   color: var(--color-bg);
+}
+
+.login-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 /* =========================================================
@@ -225,7 +218,6 @@ img {
 .movie-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-md);
-  border-color: var(--color-accent);
 }
 
 .movie-poster {
@@ -247,7 +239,6 @@ img {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: var(--color-text);
 }
 
 .movie-meta {
@@ -258,19 +249,19 @@ img {
 }
 
 .movie-genre {
-  color: var(--color-accent);
+  color: var(--color-text-tertiary);
   font-size: 0.75rem;
   margin-top: 4px;
 }
 
 /* =========================================================
-   LOADING STATE
+   LOADING
    ========================================================= */
 .loading-overlay {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(6px);
   z-index: 9999;
   justify-content: center;
@@ -287,7 +278,7 @@ img {
   width: 36px;
   height: 36px;
   border: 3px solid var(--color-border);
-  border-top-color: var(--color-accent);
+  border-top-color: var(--color-text);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -319,12 +310,7 @@ img {
 
 .loading-card .poster-placeholder {
   height: 280px;
-  background: linear-gradient(
-    100deg,
-    var(--color-surface) 30%,
-    #2a2a2a 50%,
-    var(--color-surface) 70%
-  );
+  background: linear-gradient(100deg, var(--color-surface) 30%, #ececec 50%, var(--color-surface) 70%);
   background-size: 200% 100%;
   animation: shimmer 1.4s ease-in-out infinite;
 }
@@ -364,7 +350,7 @@ img {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(10px);
   z-index: 2000;
   justify-content: center;
@@ -377,7 +363,7 @@ img {
 }
 
 .modal-content {
-  background: var(--color-surface-raised);
+  background: var(--color-bg);
   border-radius: var(--radius-lg);
   max-width: 850px;
   width: 100%;
@@ -386,7 +372,6 @@ img {
   padding: 28px;
   position: relative;
   box-shadow: var(--shadow-lg);
-  border: 1px solid var(--color-border);
 }
 
 .modal-close {
@@ -399,18 +384,24 @@ img {
   align-items: center;
   justify-content: center;
   background: var(--color-surface);
-  border: none;
   border-radius: 50%;
   color: var(--color-text-secondary);
-  font-size: 1.3rem;
-  line-height: 1;
-  cursor: pointer;
   transition: background var(--duration) var(--ease), color var(--duration) var(--ease);
 }
 
 .modal-close:hover {
-  background: var(--color-accent);
+  background: var(--color-text);
   color: var(--color-bg);
+}
+
+.modal-close svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .modal-movie-detail {
@@ -430,7 +421,6 @@ img {
   font-weight: 600;
   letter-spacing: -0.01em;
   margin-bottom: 10px;
-  color: var(--color-text);
 }
 
 .modal-info .movie-meta {
@@ -469,20 +459,18 @@ img {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
   color: var(--color-text);
-  cursor: pointer;
   font-size: 0.85rem;
   transition: background var(--duration) var(--ease), color var(--duration) var(--ease),
     border-color var(--duration) var(--ease);
 }
 
 .qism-btn:hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
+  border-color: var(--color-text);
 }
 
 .qism-btn.active {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
+  background: var(--color-text);
+  border-color: var(--color-text);
   color: var(--color-bg);
 }
 
@@ -499,7 +487,6 @@ img {
 }
 
 .age-modal-content h2 {
-  color: var(--color-danger);
   font-size: 1.4rem;
   font-weight: 600;
   margin-bottom: 12px;
@@ -520,28 +507,27 @@ img {
 
 .age-btn {
   padding: 11px 32px;
-  border: none;
+  border: 1px solid transparent;
   border-radius: var(--radius-pill);
   font-size: 0.95rem;
   font-weight: 600;
-  cursor: pointer;
   transition: background var(--duration) var(--ease), color var(--duration) var(--ease),
     border-color var(--duration) var(--ease);
 }
 
 .age-btn-yes {
-  background: var(--color-accent);
+  background: var(--color-text);
   color: var(--color-bg);
 }
 
 .age-btn-yes:hover {
-  background: var(--color-accent-hover);
+  background: var(--color-text-secondary);
 }
 
 .age-btn-no {
-  background: var(--color-surface);
+  background: var(--color-bg);
   color: var(--color-text-secondary);
-  border: 1px solid var(--color-border);
+  border-color: var(--color-border);
 }
 
 .age-btn-no:hover {
@@ -555,22 +541,25 @@ img {
 .admin-login {
   max-width: 380px;
   margin: 48px auto;
-  background: var(--color-surface-raised);
+  background: var(--color-bg);
   padding: 32px;
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
 }
 
 .admin-login h2 {
   text-align: center;
   font-weight: 600;
-  color: var(--color-accent);
   margin-bottom: 26px;
 }
 
-.admin-login h2 i {
+.admin-login h2 svg {
+  display: inline-block;
+  vertical-align: middle;
   margin-right: 10px;
+  width: 28px;
+  height: 28px;
 }
 
 .form-group {
@@ -584,8 +573,7 @@ img {
   font-size: 0.85rem;
 }
 
-.form-group input,
-.form-group select {
+.form-group input {
   width: 100%;
   padding: 9px 12px;
   background: var(--color-surface);
@@ -594,11 +582,10 @@ img {
   color: var(--color-text);
   font-size: 0.92rem;
   outline: none;
-  transition: border-color var(--duration) var(--ease), background var(--duration) var(--ease);
+  transition: border-color var(--duration) var(--ease);
 }
 
-.form-group input:focus,
-.form-group select:focus {
+.form-group input:focus {
   border-color: var(--color-accent);
   background: var(--color-bg);
 }
@@ -610,25 +597,16 @@ img {
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background var(--duration) var(--ease), opacity var(--duration) var(--ease);
+  transition: background var(--duration) var(--ease);
 }
 
 .btn-primary {
-  background: var(--color-accent);
+  background: var(--color-text);
   color: var(--color-bg);
 }
 
 .btn-primary:hover {
-  background: var(--color-accent-hover);
-}
-
-.btn-danger {
-  background: var(--color-danger);
-  color: #fff;
-}
-
-.btn-danger:hover {
-  opacity: 0.85;
+  background: var(--color-text-secondary);
 }
 
 .error-message {
@@ -640,11 +618,10 @@ img {
 
 .logout-btn {
   padding: 7px 18px;
-  background: transparent;
+  background: var(--color-bg);
   border: 1px solid var(--color-danger);
   border-radius: var(--radius-pill);
   color: var(--color-danger);
-  cursor: pointer;
   font-size: 0.88rem;
   transition: background var(--duration) var(--ease), color var(--duration) var(--ease);
 }
@@ -662,13 +639,13 @@ img {
 }
 
 .form-message.success {
-  background: rgba(0, 255, 136, 0.1);
+  background: rgba(0, 113, 227, 0.1);
   color: var(--color-accent);
   border: 1px solid var(--color-accent);
 }
 
 .form-message.error {
-  background: rgba(255, 68, 68, 0.1);
+  background: rgba(255, 59, 48, 0.1);
   color: var(--color-danger);
   border: 1px solid var(--color-danger);
 }
@@ -722,7 +699,7 @@ img {
 }
 
 .movie-item .movie-actions .edit-btn {
-  background: var(--color-accent);
+  background: var(--color-text);
   color: var(--color-bg);
 }
 
@@ -757,6 +734,11 @@ img {
 
 .qism-item .btn-danger {
   padding: 6px 12px;
+  background: var(--color-danger);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
 }
 
 hr {
