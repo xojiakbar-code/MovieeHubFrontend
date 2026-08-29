@@ -1,4 +1,5 @@
-// MovieHub - Frontend
+// MovieHub - Frontend (Tuzatilgan)
+
 const API_URL = 'https://movieehubbackend.onrender.com/api';
 const BASE_URL = 'https://movieehubbackend.onrender.com';
 const RESTRICTED_AGES = ['16+', '18+'];
@@ -29,6 +30,18 @@ function hideLoading() {
   loadingOverlay.classList.remove('active');
 }
 
+// ============ DEFAULT RASM (placeholder o'rniga) ============
+function getDefaultImage() {
+  // SVG asosida default rasm yaratish
+  return 'data:image/svg+xml,' + encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400">
+      <rect width="300" height="400" fill="#1a1a1a"/>
+      <text x="150" y="180" font-family="Arial" font-size="24" fill="#444" text-anchor="middle">🎬</text>
+      <text x="150" y="220" font-family="Arial" font-size="16" fill="#666" text-anchor="middle">No Image</text>
+    </svg>
+  `);
+}
+
 // ============ FILMLARNI YUKLASH ============
 async function loadMovies(search = '') {
   showLoading('Filmlar yuklanmoqda...');
@@ -39,7 +52,7 @@ async function loadMovies(search = '') {
     if (!data.success) throw new Error(data.message);
     renderMovies(data.data);
   } catch (e) {
-    moviesGrid.innerHTML = `<div style="text-align:center;color:var(--accent-red);padding:40px;">❌ ${e.message}</div>`;
+    moviesGrid.innerHTML = `<div style="text-align:center;color:var(--color-danger);padding:40px;">❌ Xatolik: ${e.message}</div>`;
   }
   hideLoading();
 }
@@ -47,22 +60,46 @@ async function loadMovies(search = '') {
 // ============ RENDER ============
 function renderMovies(movies) {
   if (!movies?.length) {
-    moviesGrid.innerHTML = `<div style="text-align:center;color:var(--text-secondary);padding:40px;">🎬 Filmlar topilmadi</div>`;
+    moviesGrid.innerHTML = `<div style="text-align:center;color:var(--color-text-secondary);padding:40px;">🎬 Filmlar topilmadi</div>`;
     return;
   }
 
-  moviesGrid.innerHTML = movies.map(m => `
-    <div class="movie-card" onclick="openMovie('${m._id}')">
-      <img src="${m.rasm.startsWith('http') ? m.rasm : BASE_URL + m.rasm}" 
-           alt="${m.nomi}" class="movie-poster"
-           onerror="this.src='https://via.placeholder.com/300x400/222222/00ff88?text=No+Image'" />
-      <div class="movie-info">
-        <div class="movie-title">${m.nomi}</div>
-        <div class="movie-meta"><span>${m.yili}</span><span>${m.turi === 'film' ? '🎬' : '📺'}</span></div>
-        <div class="movie-genre">${m.janr}</div>
+  const defaultImg = getDefaultImage();
+
+  moviesGrid.innerHTML = movies.map(m => {
+    // Rasm URL ni to'g'rilash
+    let imgUrl = defaultImg;
+    if (m.rasm) {
+      if (m.rasm.startsWith('http://') || m.rasm.startsWith('https://')) {
+        imgUrl = m.rasm;
+      } else if (m.rasm.startsWith('/uploads/')) {
+        imgUrl = BASE_URL + m.rasm;
+      } else if (m.rasm.startsWith('uploads/')) {
+        imgUrl = BASE_URL + '/' + m.rasm;
+      } else {
+        imgUrl = BASE_URL + '/uploads/' + m.rasm;
+      }
+    }
+
+    return `
+      <div class="movie-card" onclick="openMovie('${m._id}')">
+        <img 
+          src="${imgUrl}" 
+          alt="${m.nomi}" 
+          class="movie-poster"
+          onerror="this.src='${defaultImg}'"
+        />
+        <div class="movie-info">
+          <div class="movie-title">${m.nomi}</div>
+          <div class="movie-meta">
+            <span>${m.yili}</span>
+            <span>${m.turi === 'film' ? '🎬' : '📺'}</span>
+          </div>
+          <div class="movie-genre">${m.janr}</div>
+        </div>
       </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 // ============ FILMNI OCHISH ============
@@ -75,8 +112,10 @@ async function openMovie(id) {
     currentMovie = data.data;
     hideLoading();
     
-    if (RESTRICTED_AGES.includes(currentMovie.yoshChegarasi)) {
-      ageMessage.textContent = `Ushbu film uchun yosh chegarasi ${currentMovie.yoshChegarasi} deb belgilangan. Sizning yoshingiz yetarlimi?`;
+    // Yosh chegarasini tekshirish
+    const age = currentMovie.yoshChegarasi || '0+';
+    if (RESTRICTED_AGES.includes(age)) {
+      ageMessage.textContent = `Ushbu film uchun yosh chegarasi ${age} deb belgilangan. Sizning yoshingiz ${age} ga yetarlimi?`;
       ageModal.classList.add('active');
     } else {
       showDetails(currentMovie);
@@ -89,29 +128,97 @@ async function openMovie(id) {
 
 // ============ DETAILS ============
 function showDetails(m) {
-  const poster = m.rasm.startsWith('http') ? m.rasm : BASE_URL + m.rasm;
+  const defaultImg = getDefaultImage();
+  
+  // Rasm URL ni to'g'rilash
+  let posterUrl = defaultImg;
+  if (m.rasm) {
+    if (m.rasm.startsWith('http://') || m.rasm.startsWith('https://')) {
+      posterUrl = m.rasm;
+    } else if (m.rasm.startsWith('/uploads/')) {
+      posterUrl = BASE_URL + m.rasm;
+    } else if (m.rasm.startsWith('uploads/')) {
+      posterUrl = BASE_URL + '/' + m.rasm;
+    } else {
+      posterUrl = BASE_URL + '/uploads/' + m.rasm;
+    }
+  }
+
   let videoHtml = '', qismlarHtml = '';
 
+  // VIDEO URL ni to'g'rilash
+  function getVideoUrl(video) {
+    if (!video) return '';
+    if (video.startsWith('http://') || video.startsWith('https://')) {
+      return video;
+    }
+    if (video.startsWith('/uploads/')) {
+      return BASE_URL + video;
+    }
+    if (video.startsWith('uploads/')) {
+      return BASE_URL + '/' + video;
+    }
+    return BASE_URL + '/uploads/' + video;
+  }
+
   if (m.turi === 'film') {
-    videoHtml = `<div class="modal-video"><video controls width="100%" id="player"><source src="${m.video?.startsWith('http') ? m.video : BASE_URL + m.video}" type="video/mp4" /></video></div>`;
+    const videoUrl = getVideoUrl(m.video);
+    if (videoUrl) {
+      videoHtml = `
+        <div class="modal-video">
+          <video controls width="100%" id="player">
+            <source src="${videoUrl}" type="video/mp4" />
+            Brauzeringiz video ko'rsatishni qo'llab-quvvatlamaydi.
+          </video>
+        </div>
+      `;
+    } else {
+      videoHtml = `<p style="color:var(--color-text-secondary);">🎬 Video mavjud emas</p>`;
+    }
   } else if (m.qismlar?.length) {
-    qismlarHtml = `<div class="qismlar-list">${m.qismlar.map((q, i) => `<button class="qism-btn ${i===0?'active':''}" onclick="playQism(${i})">${q.qismRaqami}-qism</button>`).join('')}</div>`;
-    videoHtml = `<div class="modal-video"><video controls width="100%" id="player"><source src="${BASE_URL + m.qismlar[0].video}" type="video/mp4" /></video></div>`;
+    qismlarHtml = `
+      <div class="qismlar-list">
+        ${m.qismlar.map((q, i) => `
+          <button class="qism-btn ${i===0?'active':''}" onclick="playQism(${i})">
+            ${q.qismRaqami}-qism
+          </button>
+        `).join('')}
+      </div>
+    `;
+    
+    const firstVideo = getVideoUrl(m.qismlar[0]?.video);
+    if (firstVideo) {
+      videoHtml = `
+        <div class="modal-video">
+          <video controls width="100%" id="player">
+            <source src="${firstVideo}" type="video/mp4" />
+            Brauzeringiz video ko'rsatishni qo'llab-quvvatlamaydi.
+          </video>
+        </div>
+      `;
+    } else {
+      videoHtml = `<p style="color:var(--color-text-secondary);">📺 Qism videolari mavjud emas</p>`;
+    }
   }
 
   modalBody.innerHTML = `
     <div class="modal-movie-detail">
-      <img src="${poster}" alt="${m.nomi}" class="modal-poster" />
+      <img 
+        src="${posterUrl}" 
+        alt="${m.nomi}" 
+        class="modal-poster"
+        onerror="this.src='${defaultImg}'"
+      />
       <div class="modal-info">
         <h2>${m.nomi}</h2>
         <div class="movie-meta">
           <span>${m.turi === 'film' ? '🎬 Film' : '📺 Serial'}</span>
           <span>${m.yili}</span>
           <span>${m.davlati}</span>
-          <span>🔞 ${m.yoshChegarasi}</span>
-          <span>⏱ ${m.davomiyligi}</span>
+          <span>🔞 ${m.yoshChegarasi || '0+'}</span>
+          <span>⏱ ${m.davomiyligi || 'Noma\'lum'}</span>
         </div>
-        <p><strong>Janr:</strong> ${m.janr} | <strong>Til:</strong> ${m.tili}</p>
+        <p><strong>Janr:</strong> ${m.janr} | <strong>Til:</strong> ${m.tili || 'Noma\'lum'}</p>
         ${qismlarHtml}
         ${videoHtml}
       </div>
@@ -124,18 +231,40 @@ function showDetails(m) {
 function playQism(index) {
   const m = currentMovie;
   if (!m?.qismlar?.[index]) return;
-  document.querySelectorAll('.qism-btn').forEach((b, i) => b.classList.toggle('active', i === index));
+  
+  document.querySelectorAll('.qism-btn').forEach((b, i) => {
+    b.classList.toggle('active', i === index);
+  });
+
+  function getVideoUrl(video) {
+    if (!video) return '';
+    if (video.startsWith('http://') || video.startsWith('https://')) return video;
+    if (video.startsWith('/uploads/')) return BASE_URL + video;
+    if (video.startsWith('uploads/')) return BASE_URL + '/' + video;
+    return BASE_URL + '/uploads/' + video;
+  }
+
   const player = document.getElementById('player');
   if (player) {
-    player.src = BASE_URL + m.qismlar[index].video;
-    player.load();
-    player.play().catch(() => {});
+    const videoUrl = getVideoUrl(m.qismlar[index].video);
+    if (videoUrl) {
+      player.src = videoUrl;
+      player.load();
+      player.play().catch(() => {});
+    }
   }
 }
 
 // ============ EVENTS ============
-ageYes.addEventListener('click', () => { ageModal.classList.remove('active'); showDetails(currentMovie); });
-ageNo.addEventListener('click', () => { ageModal.classList.remove('active'); movieModal.classList.remove('active'); });
+ageYes.addEventListener('click', () => { 
+  ageModal.classList.remove('active'); 
+  showDetails(currentMovie); 
+});
+
+ageNo.addEventListener('click', () => { 
+  ageModal.classList.remove('active'); 
+  movieModal.classList.remove('active'); 
+});
 
 modalClose.addEventListener('click', () => {
   movieModal.classList.remove('active');
@@ -156,6 +285,8 @@ searchInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') searchB
 
 // ============ LOAD ============
 document.addEventListener('DOMContentLoaded', () => {
+  // Loading kartochkalar
+  const defaultImg = getDefaultImage();
   moviesGrid.innerHTML = Array(8).fill(0).map(() => `
     <div class="loading-card">
       <div class="poster-placeholder"></div>
