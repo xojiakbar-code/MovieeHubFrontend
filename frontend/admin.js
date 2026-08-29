@@ -1,6 +1,7 @@
 // MovieHub - Admin Panel JavaScript
 
-const API_URL = 'http://localhost:5000/api';
+// API URL ni Render URL ga o'zgartirish
+const API_URL = 'https://movieehubbackend.onrender.com/api';
 
 // DOM elementlari
 const loginForm = document.getElementById('loginForm');
@@ -72,7 +73,6 @@ loginFormElement.addEventListener('submit', async (e) => {
       return;
     }
     
-    // Tokenni saqlash
     localStorage.setItem('adminToken', data.token);
     localStorage.setItem('adminUsername', data.admin.username);
     
@@ -100,7 +100,7 @@ function getAuthHeaders() {
   };
 }
 
-// ==================== FILMLARNI YUKLASH (Admin panel) ====================
+// ==================== FILMLARNI YUKLASH ====================
 async function loadMovies() {
   try {
     const response = await fetch(`${API_URL}/movies`);
@@ -132,7 +132,7 @@ function renderMoviesList(movies) {
     return;
   }
   
-  const baseUrl = API_URL.replace('/api', '');
+  const baseUrl = 'https://movieehubbackend.onrender.com';
   
   moviesList.innerHTML = movies.map(movie => `
     <div class="movie-item">
@@ -152,7 +152,6 @@ function renderMoviesList(movies) {
 }
 
 // ==================== FILM QO'SHISH / TAHRIRLASH ====================
-// Serial qismlarini boshqarish
 turiSelect.addEventListener('change', function() {
   if (this.value === 'serial') {
     videoField.style.display = 'none';
@@ -163,7 +162,6 @@ turiSelect.addEventListener('change', function() {
   }
 });
 
-// Qism qo'shish
 addQismBtn.addEventListener('click', () => {
   const qismCount = qismlarContainer.children.length + 1;
   const qismDiv = document.createElement('div');
@@ -184,7 +182,6 @@ addQismBtn.addEventListener('click', () => {
   qismlarContainer.appendChild(qismDiv);
 });
 
-// Formani yuborish
 movieForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   
@@ -200,13 +197,11 @@ movieForm.addEventListener('submit', async (e) => {
     davomiyligi: document.getElementById('davomiyligi').value.trim()
   };
   
-  // Rasm
   const rasmFile = document.getElementById('rasm').files[0];
   if (rasmFile) {
     formData.append('rasm', rasmFile);
   }
   
-  // Video (film uchun)
   if (movieData.turi === 'film') {
     const videoFile = document.getElementById('video').files[0];
     if (videoFile) {
@@ -214,7 +209,6 @@ movieForm.addEventListener('submit', async (e) => {
     }
   }
   
-  // Serial qismlari
   if (movieData.turi === 'serial') {
     const qismItems = qismlarContainer.querySelectorAll('.qism-item');
     const qismlar = [];
@@ -238,7 +232,6 @@ movieForm.addEventListener('submit', async (e) => {
   
   formData.append('data', JSON.stringify(movieData));
   
-  // So'rovni yuborish
   const isEdit = editMovieId !== null;
   const url = isEdit ? `${API_URL}/movies/${editMovieId}` : `${API_URL}/movies`;
   const method = isEdit ? 'PUT' : 'POST';
@@ -259,7 +252,6 @@ movieForm.addEventListener('submit', async (e) => {
     formMessage.className = 'form-message success';
     formMessage.textContent = isEdit ? 'Film muvaffaqiyatli yangilandi!' : 'Film muvaffaqiyatli qo\'shildi!';
     
-    // Formani tozalash
     movieForm.reset();
     editMovieId = null;
     qismlarContainer.innerHTML = `
@@ -275,7 +267,6 @@ movieForm.addEventListener('submit', async (e) => {
       </div>
     `;
     
-    // Ro'yxatni yangilash
     loadMovies();
     
     setTimeout(() => {
@@ -303,7 +294,6 @@ async function editMovie(movieId) {
     const movie = data.data;
     editMovieId = movieId;
     
-    // Formani to'ldirish
     document.getElementById('nomi').value = movie.nomi;
     document.getElementById('turi').value = movie.turi;
     document.getElementById('janr').value = movie.janr;
@@ -313,10 +303,8 @@ async function editMovie(movieId) {
     document.getElementById('yoshChegarasi').value = movie.yoshChegarasi;
     document.getElementById('davomiyligi').value = movie.davomiyligi;
     
-    // Turiga qarab maydonlarni ko'rsatish
     turiSelect.dispatchEvent(new Event('change'));
     
-    // Serial qismlarini yuklash
     if (movie.turi === 'serial' && movie.qismlar && movie.qismlar.length > 0) {
       qismlarContainer.innerHTML = '';
       movie.qismlar.forEach((qism, index) => {
@@ -339,7 +327,6 @@ async function editMovie(movieId) {
       });
     }
     
-    // Sahifani formaga skroll qilish
     document.querySelector('#adminPanel h2').scrollIntoView({ behavior: 'smooth' });
     
     formMessage.className = 'form-message';
@@ -380,10 +367,4 @@ async function deleteMovie(movieId) {
 // ==================== SAHIFA YUKLANGANDA ====================
 document.addEventListener('DOMContentLoaded', () => {
   checkAuth();
-  
-  // Agar token mavjud bo'lsa, lekin xato bo'lsa, chiqarib yuborish
-  if (localStorage.getItem('adminToken')) {
-    // Token tekshiruvi uchun test so'rov
-    // (Ixtiyoriy: token yaroqliligini tekshirish)
-  }
 });
