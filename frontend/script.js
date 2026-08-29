@@ -1,243 +1,169 @@
-// MovieHub - Frontend JavaScript
-
-// API URL ni Render URL ga o'zgartirish
+// MovieHub - Frontend
 const API_URL = 'https://movieehubbackend.onrender.com/api';
-
-const moviesGrid = document.getElementById('moviesGrid');
-const searchInput = document.getElementById('searchInput');
-const searchBtn = document.getElementById('searchBtn');
-const movieModal = document.getElementById('movieModal');
-const modalBody = document.getElementById('modalBody');
-const modalClose = document.getElementById('modalClose');
-const ageModal = document.getElementById('ageModal');
-const ageMessage = document.getElementById('ageMessage');
-const ageYes = document.getElementById('ageYes');
-const ageNo = document.getElementById('ageNo');
-
-// Cheklovli yosh chegaralari
+const BASE_URL = 'https://movieehubbackend.onrender.com';
 const RESTRICTED_AGES = ['16+', '18+'];
 
+const $ = id => document.getElementById(id);
+const moviesGrid = $('moviesGrid');
+const searchInput = $('searchInput');
+const searchBtn = $('searchBtn');
+const movieModal = $('movieModal');
+const modalBody = $('modalBody');
+const modalClose = $('modalClose');
+const ageModal = $('ageModal');
+const ageMessage = $('ageMessage');
+const ageYes = $('ageYes');
+const ageNo = $('ageNo');
+const loadingOverlay = $('loadingOverlay');
+const loadingText = $('loadingText');
+
 let currentMovie = null;
-let pendingVideoUrl = null;
 
-// ==================== BARCHA FILMLARNI YUKLASH ====================
-async function loadMovies(searchQuery = '') {
-  try {
-    let url = `${API_URL}/movies`;
-    if (searchQuery && searchQuery.trim() !== '') {
-      url = `${API_URL}/movies/search?q=${encodeURIComponent(searchQuery)}`;
-    }
-
-    const response = await fetch(url);
-    const data = await response.json();
-
-    if (!data.success) {
-      throw new Error(data.message || 'Filmlarni yuklashda xatolik');
-    }
-
-    renderMovies(data.data);
-  } catch (error) {
-    console.error('Filmlarni yuklash xatosi:', error);
-    moviesGrid.innerHTML = `
-      <div style="text-align:center;color:var(--accent-red);padding:50px;">
-        <i class="fas fa-exclamation-circle" style="font-size:3rem;"></i>
-        <p>${error.message}</p>
-        <button onclick="loadMovies()" class="btn btn-primary">Qayta urinish</button>
-      </div>
-    `;
-  }
+// ============ LOADING ============
+function showLoading(msg = 'Yuklanmoqda...') {
+  loadingText.textContent = msg;
+  loadingOverlay.classList.add('active');
 }
 
-// ==================== FILMLARNI CHIQARISH ====================
+function hideLoading() {
+  loadingOverlay.classList.remove('active');
+}
+
+// ============ FILMLARNI YUKLASH ============
+async function loadMovies(search = '') {
+  showLoading('Filmlar yuklanmoqda...');
+  try {
+    const url = search ? `${API_URL}/movies/search?q=${encodeURIComponent(search)}` : `${API_URL}/movies`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message);
+    renderMovies(data.data);
+  } catch (e) {
+    moviesGrid.innerHTML = `<div style="text-align:center;color:var(--accent-red);padding:40px;">❌ ${e.message}</div>`;
+  }
+  hideLoading();
+}
+
+// ============ RENDER ============
 function renderMovies(movies) {
-  if (!movies || movies.length === 0) {
-    moviesGrid.innerHTML = `
-      <div style="text-align:center;color:var(--text-secondary);padding:50px;grid-column:1/-1;">
-        <i class="fas fa-film" style="font-size:3rem;opacity:0.5;"></i>
-        <p>Hech qanday film topilmadi.</p>
-      </div>
-    `;
+  if (!movies?.length) {
+    moviesGrid.innerHTML = `<div style="text-align:center;color:var(--text-secondary);padding:40px;">🎬 Filmlar topilmadi</div>`;
     return;
   }
 
-  // Base URL ni Render URL ga o'zgartirish
-  const baseUrl = 'https://movieehubbackend.onrender.com';
-
-  moviesGrid.innerHTML = movies.map(movie => `
-    <div class="movie-card" onclick="openMovie('${movie._id}')">
-      <img 
-        src="${movie.rasm.startsWith('http') ? movie.rasm : baseUrl + movie.rasm}" 
-        alt="${movie.nomi}"
-        class="movie-poster"
-        onerror="this.src='https://via.placeholder.com/300x400/222222/00ff88?text=No+Image'"
-      />
+  moviesGrid.innerHTML = movies.map(m => `
+    <div class="movie-card" onclick="openMovie('${m._id}')">
+      <img src="${m.rasm.startsWith('http') ? m.rasm : BASE_URL + m.rasm}" 
+           alt="${m.nomi}" class="movie-poster"
+           onerror="this.src='https://via.placeholder.com/300x400/222222/00ff88?text=No+Image'" />
       <div class="movie-info">
-        <div class="movie-title">${movie.nomi}</div>
-        <div class="movie-meta">
-          <span>${movie.yili}</span>
-          <span>${movie.turi === 'film' ? '🎬' : '📺'}</span>
-        </div>
-        <div class="movie-genre">${movie.janr}</div>
+        <div class="movie-title">${m.nomi}</div>
+        <div class="movie-meta"><span>${m.yili}</span><span>${m.turi === 'film' ? '🎬' : '📺'}</span></div>
+        <div class="movie-genre">${m.janr}</div>
       </div>
     </div>
   `).join('');
 }
 
-// ==================== FILMNI OCHISH ====================
-async function openMovie(movieId) {
+// ============ FILMNI OCHISH ============
+async function openMovie(id) {
+  showLoading('Film yuklanmoqda...');
   try {
-    const response = await fetch(`${API_URL}/movies/${movieId}`);
-    const data = await response.json();
-
-    if (!data.success) {
-      throw new Error(data.message || 'Film ma\'lumotlarini yuklashda xatolik');
-    }
-
+    const res = await fetch(`${API_URL}/movies/${id}`);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message);
     currentMovie = data.data;
-    pendingVideoUrl = null;
-
-    const ageRestriction = currentMovie.yoshChegarasi;
-    if (RESTRICTED_AGES.includes(ageRestriction)) {
-      showAgeModal(ageRestriction);
+    hideLoading();
+    
+    if (RESTRICTED_AGES.includes(currentMovie.yoshChegarasi)) {
+      ageMessage.textContent = `Ushbu film uchun yosh chegarasi ${currentMovie.yoshChegarasi} deb belgilangan. Sizning yoshingiz yetarlimi?`;
+      ageModal.classList.add('active');
     } else {
-      showMovieDetails(currentMovie);
+      showDetails(currentMovie);
     }
-  } catch (error) {
-    console.error('Filmni ochish xatosi:', error);
-    alert('Xatolik: ' + error.message);
+  } catch (e) {
+    hideLoading();
+    alert('Xatolik: ' + e.message);
   }
 }
 
-// ==================== YOSH CHEGARASI MODAL ====================
-function showAgeModal(ageRestriction) {
-  ageMessage.textContent = `Ushbu film uchun yosh chegarasi ${ageRestriction} deb belgilangan. Filmni tomosha qilishdan avval yosh chegaralari bilan tanishib chiqishingizni so'raymiz! Sizning yoshingiz belgilangan toifaga yetarlimi?`;
-  ageModal.classList.add('active');
-}
+// ============ DETAILS ============
+function showDetails(m) {
+  const poster = m.rasm.startsWith('http') ? m.rasm : BASE_URL + m.rasm;
+  let videoHtml = '', qismlarHtml = '';
 
-ageYes.addEventListener('click', () => {
-  ageModal.classList.remove('active');
-  showMovieDetails(currentMovie);
-});
-
-ageNo.addEventListener('click', () => {
-  ageModal.classList.remove('active');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-  movieModal.classList.remove('active');
-});
-
-// ==================== FILM DETALLARINI KO'RSATISH ====================
-function showMovieDetails(movie) {
-  const baseUrl = 'https://movieehubbackend.onrender.com';
-  const posterUrl = movie.rasm.startsWith('http') ? movie.rasm : baseUrl + movie.rasm;
-
-  let videoHtml = '';
-  let qismlarHtml = '';
-
-  if (movie.turi === 'film') {
-    const videoUrl = movie.video ? (movie.video.startsWith('http') ? movie.video : baseUrl + movie.video) : '';
-    videoHtml = `
-      <div class="modal-video">
-        <video controls width="100%" id="moviePlayer">
-          <source src="${videoUrl}" type="video/mp4" />
-          Sizning brauzeringiz video ko'rsatishni qo'llab-quvvatlamaydi.
-        </video>
-      </div>
-    `;
-  } else if (movie.turi === 'serial' && movie.qismlar && movie.qismlar.length > 0) {
-    qismlarHtml = `
-      <div class="qismlar-list">
-        ${movie.qismlar.map((qism, index) => `
-          <button class="qism-btn ${index === 0 ? 'active' : ''}" onclick="playQism('${movie._id}', ${index})">
-            ${qism.qismRaqami}-qism
-          </button>
-        `).join('')}
-      </div>
-      <div class="modal-video">
-        <video controls width="100%" id="moviePlayer">
-          <source src="${baseUrl + movie.qismlar[0].video}" type="video/mp4" />
-          Sizning brauzeringiz video ko'rsatishni qo'llab-quvvatlamaydi.
-        </video>
-      </div>
-    `;
+  if (m.turi === 'film') {
+    videoHtml = `<div class="modal-video"><video controls width="100%" id="player"><source src="${m.video?.startsWith('http') ? m.video : BASE_URL + m.video}" type="video/mp4" /></video></div>`;
+  } else if (m.qismlar?.length) {
+    qismlarHtml = `<div class="qismlar-list">${m.qismlar.map((q, i) => `<button class="qism-btn ${i===0?'active':''}" onclick="playQism(${i})">${q.qismRaqami}-qism</button>`).join('')}</div>`;
+    videoHtml = `<div class="modal-video"><video controls width="100%" id="player"><source src="${BASE_URL + m.qismlar[0].video}" type="video/mp4" /></video></div>`;
   }
 
   modalBody.innerHTML = `
     <div class="modal-movie-detail">
-      <div>
-        <img src="${posterUrl}" alt="${movie.nomi}" class="modal-poster" />
-      </div>
+      <img src="${poster}" alt="${m.nomi}" class="modal-poster" />
       <div class="modal-info">
-        <h2>${movie.nomi}</h2>
+        <h2>${m.nomi}</h2>
         <div class="movie-meta">
-          <span>${movie.turi === 'film' ? '🎬 Film' : '📺 Serial'}</span>
-          <span>${movie.yili}</span>
-          <span>${movie.davlati}</span>
-          <span>${movie.tili}</span>
-          <span>🔞 ${movie.yoshChegarasi}</span>
-          <span>⏱ ${movie.davomiyligi}</span>
+          <span>${m.turi === 'film' ? '🎬 Film' : '📺 Serial'}</span>
+          <span>${m.yili}</span>
+          <span>${m.davlati}</span>
+          <span>🔞 ${m.yoshChegarasi}</span>
+          <span>⏱ ${m.davomiyligi}</span>
         </div>
-        <p><strong>Janr:</strong> ${movie.janr}</p>
+        <p><strong>Janr:</strong> ${m.janr} | <strong>Til:</strong> ${m.tili}</p>
         ${qismlarHtml}
         ${videoHtml}
       </div>
     </div>
   `;
-
   movieModal.classList.add('active');
 }
 
-// ==================== SERIAL QISMINI O'YIN ====================
-function playQism(movieId, index) {
-  const movie = currentMovie;
-  if (!movie || !movie.qismlar || !movie.qismlar[index]) return;
-
-  const baseUrl = 'https://movieehubbackend.onrender.com';
-  const videoUrl = baseUrl + movie.qismlar[index].video;
-
-  document.querySelectorAll('.qism-btn').forEach((btn, i) => {
-    btn.classList.toggle('active', i === index);
-  });
-
-  const player = document.getElementById('moviePlayer');
+// ============ QISM ============
+function playQism(index) {
+  const m = currentMovie;
+  if (!m?.qismlar?.[index]) return;
+  document.querySelectorAll('.qism-btn').forEach((b, i) => b.classList.toggle('active', i === index));
+  const player = document.getElementById('player');
   if (player) {
-    player.src = videoUrl;
+    player.src = BASE_URL + m.qismlar[index].video;
     player.load();
-    player.play().catch(e => console.log('Video avtomatik o\'ynalmadi:', e));
+    player.play().catch(() => {});
   }
 }
 
-// ==================== MODALNI YOPISH ====================
+// ============ EVENTS ============
+ageYes.addEventListener('click', () => { ageModal.classList.remove('active'); showDetails(currentMovie); });
+ageNo.addEventListener('click', () => { ageModal.classList.remove('active'); movieModal.classList.remove('active'); });
+
 modalClose.addEventListener('click', () => {
   movieModal.classList.remove('active');
-  const player = document.getElementById('moviePlayer');
-  if (player) {
-    player.pause();
-  }
+  const p = document.getElementById('player');
+  if (p) p.pause();
 });
 
 movieModal.addEventListener('click', (e) => {
   if (e.target === movieModal) {
     movieModal.classList.remove('active');
-    const player = document.getElementById('moviePlayer');
-    if (player) {
-      player.pause();
-    }
+    const p = document.getElementById('player');
+    if (p) p.pause();
   }
 });
 
-// ==================== QIDIRUV ====================
-searchBtn.addEventListener('click', () => {
-  const query = searchInput.value.trim();
-  loadMovies(query);
-});
+searchBtn.addEventListener('click', () => loadMovies(searchInput.value.trim()));
+searchInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') searchBtn.click(); });
 
-searchInput.addEventListener('keypress', (e) => {
-  if (e.key === 'Enter') {
-    searchBtn.click();
-  }
-});
-
-// ==================== SAHIFA YUKLANGANDA ====================
+// ============ LOAD ============
 document.addEventListener('DOMContentLoaded', () => {
+  moviesGrid.innerHTML = Array(8).fill(0).map(() => `
+    <div class="loading-card">
+      <div class="poster-placeholder"></div>
+      <div class="info-placeholder">
+        <div class="title-placeholder"></div>
+        <div class="meta-placeholder"></div>
+      </div>
+    </div>
+  `).join('');
   loadMovies();
 });
