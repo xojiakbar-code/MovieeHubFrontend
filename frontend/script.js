@@ -1,4 +1,4 @@
-// MovieHub - Frontend (Tuzatilgan)
+// MovieHub - Frontend (Optimallashtirilgan)
 
 const API_URL = 'https://movieehubbackend.onrender.com/api';
 const BASE_URL = 'https://movieehubbackend.onrender.com';
@@ -19,20 +19,22 @@ const loadingOverlay = $('loadingOverlay');
 const loadingText = $('loadingText');
 
 let currentMovie = null;
+let loadingTimeout = null;
 
 // ============ LOADING ============
 function showLoading(msg = 'Yuklanmoqda...') {
+  clearTimeout(loadingTimeout);
   loadingText.textContent = msg;
   loadingOverlay.classList.add('active');
 }
 
 function hideLoading() {
+  clearTimeout(loadingTimeout);
   loadingOverlay.classList.remove('active');
 }
 
-// ============ DEFAULT RASM (placeholder o'rniga) ============
+// ============ DEFAULT RASM ============
 function getDefaultImage() {
-  // SVG asosida default rasm yaratish
   return 'data:image/svg+xml,' + encodeURIComponent(`
     <svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400">
       <rect width="300" height="400" fill="#1a1a1a"/>
@@ -40,6 +42,24 @@ function getDefaultImage() {
       <text x="150" y="220" font-family="Arial" font-size="16" fill="#666" text-anchor="middle">No Image</text>
     </svg>
   `);
+}
+
+// ============ RASM URL NI TO'G'RILASH ============
+function fixImageUrl(url) {
+  if (!url) return getDefaultImage();
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  if (url.startsWith('/uploads/')) return BASE_URL + url;
+  if (url.startsWith('uploads/')) return BASE_URL + '/' + url;
+  return BASE_URL + '/uploads/' + url;
+}
+
+// ============ VIDEO URL NI TO'G'RILASH ============
+function fixVideoUrl(url) {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  if (url.startsWith('/uploads/')) return BASE_URL + url;
+  if (url.startsWith('uploads/')) return BASE_URL + '/' + url;
+  return BASE_URL + '/uploads/' + url;
 }
 
 // ============ FILMLARNI YUKLASH ============
@@ -67,26 +87,14 @@ function renderMovies(movies) {
   const defaultImg = getDefaultImage();
 
   moviesGrid.innerHTML = movies.map(m => {
-    // Rasm URL ni to'g'rilash
-    let imgUrl = defaultImg;
-    if (m.rasm) {
-      if (m.rasm.startsWith('http://') || m.rasm.startsWith('https://')) {
-        imgUrl = m.rasm;
-      } else if (m.rasm.startsWith('/uploads/')) {
-        imgUrl = BASE_URL + m.rasm;
-      } else if (m.rasm.startsWith('uploads/')) {
-        imgUrl = BASE_URL + '/' + m.rasm;
-      } else {
-        imgUrl = BASE_URL + '/uploads/' + m.rasm;
-      }
-    }
-
+    const imgUrl = fixImageUrl(m.rasm);
     return `
       <div class="movie-card" onclick="openMovie('${m._id}')">
         <img 
           src="${imgUrl}" 
           alt="${m.nomi}" 
           class="movie-poster"
+          loading="lazy"
           onerror="this.src='${defaultImg}'"
         />
         <div class="movie-info">
@@ -112,7 +120,6 @@ async function openMovie(id) {
     currentMovie = data.data;
     hideLoading();
     
-    // Yosh chegarasini tekshirish
     const age = currentMovie.yoshChegarasi || '0+';
     if (RESTRICTED_AGES.includes(age)) {
       ageMessage.textContent = `Ushbu film uchun yosh chegarasi ${age} deb belgilangan. Sizning yoshingiz ${age} ga yetarlimi?`;
@@ -129,44 +136,16 @@ async function openMovie(id) {
 // ============ DETAILS ============
 function showDetails(m) {
   const defaultImg = getDefaultImage();
-  
-  // Rasm URL ni to'g'rilash
-  let posterUrl = defaultImg;
-  if (m.rasm) {
-    if (m.rasm.startsWith('http://') || m.rasm.startsWith('https://')) {
-      posterUrl = m.rasm;
-    } else if (m.rasm.startsWith('/uploads/')) {
-      posterUrl = BASE_URL + m.rasm;
-    } else if (m.rasm.startsWith('uploads/')) {
-      posterUrl = BASE_URL + '/' + m.rasm;
-    } else {
-      posterUrl = BASE_URL + '/uploads/' + m.rasm;
-    }
-  }
+  const posterUrl = fixImageUrl(m.rasm);
 
   let videoHtml = '', qismlarHtml = '';
 
-  // VIDEO URL ni to'g'rilash
-  function getVideoUrl(video) {
-    if (!video) return '';
-    if (video.startsWith('http://') || video.startsWith('https://')) {
-      return video;
-    }
-    if (video.startsWith('/uploads/')) {
-      return BASE_URL + video;
-    }
-    if (video.startsWith('uploads/')) {
-      return BASE_URL + '/' + video;
-    }
-    return BASE_URL + '/uploads/' + video;
-  }
-
   if (m.turi === 'film') {
-    const videoUrl = getVideoUrl(m.video);
+    const videoUrl = fixVideoUrl(m.video);
     if (videoUrl) {
       videoHtml = `
         <div class="modal-video">
-          <video controls width="100%" id="player">
+          <video controls width="100%" id="player" preload="metadata">
             <source src="${videoUrl}" type="video/mp4" />
             Brauzeringiz video ko'rsatishni qo'llab-quvvatlamaydi.
           </video>
@@ -186,11 +165,11 @@ function showDetails(m) {
       </div>
     `;
     
-    const firstVideo = getVideoUrl(m.qismlar[0]?.video);
+    const firstVideo = fixVideoUrl(m.qismlar[0]?.video);
     if (firstVideo) {
       videoHtml = `
         <div class="modal-video">
-          <video controls width="100%" id="player">
+          <video controls width="100%" id="player" preload="metadata">
             <source src="${firstVideo}" type="video/mp4" />
             Brauzeringiz video ko'rsatishni qo'llab-quvvatlamaydi.
           </video>
@@ -236,17 +215,9 @@ function playQism(index) {
     b.classList.toggle('active', i === index);
   });
 
-  function getVideoUrl(video) {
-    if (!video) return '';
-    if (video.startsWith('http://') || video.startsWith('https://')) return video;
-    if (video.startsWith('/uploads/')) return BASE_URL + video;
-    if (video.startsWith('uploads/')) return BASE_URL + '/' + video;
-    return BASE_URL + '/uploads/' + video;
-  }
-
   const player = document.getElementById('player');
   if (player) {
-    const videoUrl = getVideoUrl(m.qismlar[index].video);
+    const videoUrl = fixVideoUrl(m.qismlar[index].video);
     if (videoUrl) {
       player.src = videoUrl;
       player.load();
@@ -280,13 +251,18 @@ movieModal.addEventListener('click', (e) => {
   }
 });
 
-searchBtn.addEventListener('click', () => loadMovies(searchInput.value.trim()));
-searchInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') searchBtn.click(); });
+searchBtn.addEventListener('click', () => {
+  const q = searchInput.value.trim();
+  if (q.length >= 2) loadMovies(q);
+});
+
+searchInput.addEventListener('keypress', (e) => { 
+  if (e.key === 'Enter') searchBtn.click(); 
+});
 
 // ============ LOAD ============
 document.addEventListener('DOMContentLoaded', () => {
   // Loading kartochkalar
-  const defaultImg = getDefaultImage();
   moviesGrid.innerHTML = Array(8).fill(0).map(() => `
     <div class="loading-card">
       <div class="poster-placeholder"></div>
