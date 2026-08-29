@@ -38,7 +38,7 @@ function showPanel() {
   loadMovies();
 }
 
-// ============ LOGIN ============
+// ============ LOGIN (TUZATILGAN) ============
 document.getElementById('loginFormElement').addEventListener('submit', async (e) => {
   e.preventDefault();
   
@@ -46,7 +46,7 @@ document.getElementById('loginFormElement').addEventListener('submit', async (e)
   const password = $('password').value.trim();
   
   if (!username || !password) { 
-    loginError.textContent = 'Iltimos, username va parolni kiriting'; 
+    loginError.textContent = 'Username va parolni kiriting'; 
     return; 
   }
   
@@ -69,17 +69,25 @@ document.getElementById('loginFormElement').addEventListener('submit', async (e)
     const data = await res.json();
     console.log('📥 Javob:', data);
     
-    if (!res.ok || !data.success) {
+    if (!res.ok) {
       throw new Error(data.message || 'Noto\'g\'ri ma\'lumotlar');
     }
     
+    if (!data.success) {
+      throw new Error(data.message || 'Noto\'g\'ri ma\'lumotlar');
+    }
+    
+    // Token va admin ma'lumotlarini saqlash
     localStorage.setItem('adminToken', data.token);
+    localStorage.setItem('adminUsername', data.admin.username);
+    
+    console.log('✅ Login muvaffaqiyatli!');
     showPanel();
     loginError.textContent = '';
     
-  } catch (e) {
-    console.error('❌ Login xatosi:', e);
-    loginError.textContent = e.message || 'Noto\'g\'ri ma\'lumotlar';
+  } catch (error) {
+    console.error('❌ Login xatosi:', error);
+    loginError.textContent = error.message || 'Noto\'g\'ri ma\'lumotlar';
   } finally {
     btn.textContent = originalText;
     btn.disabled = false;
@@ -89,6 +97,7 @@ document.getElementById('loginFormElement').addEventListener('submit', async (e)
 // ============ LOGOUT ============
 logoutBtn.addEventListener('click', () => {
   localStorage.removeItem('adminToken');
+  localStorage.removeItem('adminUsername');
   showLogin();
 });
 
@@ -151,7 +160,7 @@ $('addQismBtn').addEventListener('click', () => {
   div.innerHTML = `
     <input type="number" class="qismRaqami" value="${qismlarContainer.children.length+1}" placeholder="Raqam" />
     <input type="text" class="qismVideo" placeholder="Video URL" />
-    <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">✕</button>
+    <button type="button" class="btn-danger" onclick="this.parentElement.remove()">✕</button>
   `;
   qismlarContainer.appendChild(div);
 });
@@ -236,7 +245,7 @@ async function editMovie(id) {
         div.innerHTML = `
           <input type="number" class="qismRaqami" value="${q.qismRaqami || i+1}" placeholder="Raqam" />
           <input type="text" class="qismVideo" value="${q.video}" placeholder="Video URL" />
-          <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">✕</button>
+          <button type="button" class="btn-danger" onclick="this.parentElement.remove()">✕</button>
         `;
         qismlarContainer.appendChild(div);
       });
