@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MovieHub - Admin Panel</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="container">
+      <div class="header-content">
+        <a href="index.html" class="logo">
+          <i class="fas fa-film"></i>
+          <span>MovieHub Admin</span>
+        </a>
+        <button id="logoutBtn" class="logout-btn" style="display: none;">
+          <i class="fas fa-sign-out-alt"></i>
+          <span>Chiqish</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <div class="container">
+      <!-- Login Form -->
+      <div id="loginForm" class="admin-login">
+        <h2><i class="fas fa-lock"></i> Admin Kirish</h2>
+        <form id="loginFormElement">
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" placeholder="Username" required />
+          </div>
+          <div class="form-group">
+            <label for="password">Parol</label>
+            <input type="password" id="password" placeholder="Parol" required />
+          </div>
+          <button type="submit" class="btn btn-primary">Kirish</button>
+          <div id="loginError" class="error-message"></div>
+        </form>
+      </div>
+
+      <!-- Admin Panel -->
+      <div id="adminPanel" style="display: none;">
+        <h2><i class="fas fa-plus-circle"></i> Yangi Film/Serial Qo'shish</h2>
+        
+        <form id="movieForm" enctype="multipart/form-data">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="nomi">Nomi *</label>
+              <input type="text" id="nomi" required />
+            </div>
+            <div class="form-group">
+              <label for="turi">Turi *</label>
+              <select id="turi" required>
+                <option value="film">Film</option>
+                <option value="serial">Serial</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="janr">Janr *</label>
+              <input type="text" id="janr" placeholder="Masalan: Drama, Komediya" required />
+            </div>
+            <div class="form-group">
+              <label for="davlati">Davlat *</label>
+              <input type="text" id="davlati" placeholder="Masalan: AQSh" required />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="yili">Yil *</label>
+              <input type="number" id="yili" placeholder="2024" required />
+            </div>
+            <div class="form-group">
+              <label for="tili">Til *</label>
+              <input type="text" id="tili" placeholder="Masalan: Inglizcha" required />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="yoshChegarasi">Yosh chegarasi *</label>
+              <select id="yoshChegarasi" required>
+                <option value="0+">0+ (Barcha yoshdagilar uchun)</option>
+                <option value="6+">6+</option>
+                <option value="12+">12+</option>
+                <option value="16+">16+</option>
+                <option value="18+">18+</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="davomiyligi">Davomiyligi *</label>
+              <input type="text" id="davomiyligi" placeholder="Masalan: 1soat 40minut" required />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="rasm">Poster rasmi *</label>
+            <input type="file" id="rasm" accept="image/*" required />
+          </div>
+
+          <!-- Film uchun video -->
+          <div class="form-group" id="videoField">
+            <label for="video">Video fayl * (film uchun)</label>
+            <input type="file" id="video" accept="video/*" />
+          </div>
+
+          <!-- Serial uchun qismlar -->
+          <div id="serialFields" style="display: none;">
+            <h3>Serial qismlari</h3>
+            <div id="qismlarContainer">
+              <div class="qism-item">
+                <div class="form-group">
+                  <label>Qism raqami</label>
+                  <input type="number" class="qismRaqami" value="1" />
+                </div>
+                <div class="form-group">
+                  <label>Video fayl</label>
+                  <input type="file" class="qismVideo" accept="video/*" />
+                </div>
+              </div>
+            </div>
+            <button type="button" id="addQismBtn" class="btn btn-secondary">
+              <i class="fas fa-plus"></i> Qism qo'shish
+            </button>
+          </div>
+
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i> Saqlash
+          </button>
+          <div id="formMessage" class="form-message"></div>
+        </form>
+
+        <hr />
+
+        <h2><i class="fas fa-list"></i> Barcha Filmlar</h2>
+        <div id="moviesList" class="movies-list">
+          <!-- Filmlar ro'yxati JavaScript orqali yuklanadi -->
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="admin.js"></script>
+</body>
+</html>
