@@ -1,157 +1,105 @@
-// MovieHub - Admin Panel JavaScript
-
-// API URL ni Render URL ga o'zgartirish
+// Admin Panel - Optimallashtirilgan
 const API_URL = 'https://movieehubbackend.onrender.com/api';
 
-// DOM elementlari
-const loginForm = document.getElementById('loginForm');
-const loginFormElement = document.getElementById('loginFormElement');
-const adminPanel = document.getElementById('adminPanel');
-const logoutBtn = document.getElementById('logoutBtn');
-const loginError = document.getElementById('loginError');
-const movieForm = document.getElementById('movieForm');
-const formMessage = document.getElementById('formMessage');
-const moviesList = document.getElementById('moviesList');
-const turiSelect = document.getElementById('turi');
-const videoField = document.getElementById('videoField');
-const serialFields = document.getElementById('serialFields');
-const addQismBtn = document.getElementById('addQismBtn');
-const qismlarContainer = document.getElementById('qismlarContainer');
+const $ = id => document.getElementById(id);
+const loginForm = $('loginForm');
+const adminPanel = $('adminPanel');
+const logoutBtn = $('logoutBtn');
+const loginError = $('loginError');
+const moviesList = $('moviesList');
+const formMessage = $('formMessage');
+const turiSelect = $('turi');
+const videoField = $('videoField');
+const serialFields = $('serialFields');
+const qismlarContainer = $('qismlarContainer');
 
-let editMovieId = null;
+let editId = null;
 
-// ==================== ADMIN HOLATINI TEKSHIRISH ====================
+// ============ AUTH ============
 function checkAuth() {
   const token = localStorage.getItem('adminToken');
-  if (token) {
-    showAdminPanel();
-  } else {
-    showLoginForm();
-  }
+  if (token) { showPanel(); } else { showLogin(); }
 }
 
-function showLoginForm() {
+function showLogin() {
   loginForm.style.display = 'block';
   adminPanel.style.display = 'none';
   logoutBtn.style.display = 'none';
 }
 
-function showAdminPanel() {
+function showPanel() {
   loginForm.style.display = 'none';
   adminPanel.style.display = 'block';
   logoutBtn.style.display = 'flex';
   loadMovies();
 }
 
-// ==================== LOGIN ====================
-loginFormElement.addEventListener('submit', async (e) => {
+// ============ LOGIN ============
+document.getElementById('loginFormElement').addEventListener('submit', async (e) => {
   e.preventDefault();
-  
-  const username = document.getElementById('username').value.trim();
-  const password = document.getElementById('password').value.trim();
-  
-  if (!username || !password) {
-    loginError.textContent = 'Iltimos, username va parolni kiriting.';
-    return;
-  }
-  
+  const username = $('username').value.trim();
+  const password = $('password').value.trim();
+  if (!username || !password) { loginError.textContent = 'Iltimos, barcha maydonlarni to\'ldiring'; return; }
   loginError.textContent = '';
   
   try {
-    const response = await fetch(`${API_URL}/admin/login`, {
+    const res = await fetch(`${API_URL}/admin/login`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
     });
-    
-    const data = await response.json();
-    
-    if (!data.success) {
-      loginError.textContent = data.message || 'Login xatosi.';
-      return;
-    }
-    
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message || 'Login xatosi');
     localStorage.setItem('adminToken', data.token);
-    localStorage.setItem('adminUsername', data.admin.username);
-    
-    showAdminPanel();
-    loginFormElement.reset();
-    
-  } catch (error) {
-    console.error('Login xatosi:', error);
-    loginError.textContent = 'Server bilan bog\'lanishda xatolik.';
+    showPanel();
+  } catch (e) {
+    loginError.textContent = e.message;
   }
 });
 
-// ==================== LOGOUT ====================
+// ============ LOGOUT ============
 logoutBtn.addEventListener('click', () => {
   localStorage.removeItem('adminToken');
-  localStorage.removeItem('adminUsername');
-  showLoginForm();
+  showLogin();
 });
 
-// ==================== API SO'ROVLARI UCHUN HEADER ====================
-function getAuthHeaders() {
-  const token = localStorage.getItem('adminToken');
-  return {
-    'Authorization': `Bearer ${token}`
-  };
+// ============ HEADERS ============
+function getHeaders() {
+  return { 'Authorization': `Bearer ${localStorage.getItem('adminToken')}` };
 }
 
-// ==================== FILMLARNI YUKLASH ====================
+// ============ FILMLARNI YUKLASH ============
 async function loadMovies() {
   try {
-    const response = await fetch(`${API_URL}/movies`);
-    const data = await response.json();
-    
-    if (!data.success) {
-      throw new Error(data.message || 'Filmlarni yuklashda xatolik');
-    }
-    
-    renderMoviesList(data.data);
-  } catch (error) {
-    console.error('Filmlarni yuklash xatosi:', error);
-    moviesList.innerHTML = `
-      <div style="text-align:center;color:var(--accent-red);padding:20px;grid-column:1/-1;">
-        <p>${error.message}</p>
-      </div>
-    `;
+    const res = await fetch(`${API_URL}/movies`);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message);
+    renderList(data.data);
+  } catch (e) {
+    moviesList.innerHTML = `<div style="color:var(--accent-red);padding:20px;">❌ ${e.message}</div>`;
   }
 }
 
-// ==================== FILMLAR RO'YXATINI CHIQARISH ====================
-function renderMoviesList(movies) {
-  if (!movies || movies.length === 0) {
-    moviesList.innerHTML = `
-      <div style="text-align:center;color:var(--text-secondary);padding:20px;grid-column:1/-1;">
-        <p>Hali hech qanday film qo'shilmagan.</p>
-      </div>
-    `;
+function renderList(movies) {
+  if (!movies?.length) {
+    moviesList.innerHTML = '<div style="color:var(--text-secondary);padding:20px;">Hali film yo\'q</div>';
     return;
   }
-  
-  const baseUrl = 'https://movieehubbackend.onrender.com';
-  
-  moviesList.innerHTML = movies.map(movie => `
+  const base = 'https://movieehubbackend.onrender.com';
+  moviesList.innerHTML = movies.map(m => `
     <div class="movie-item">
-      <img 
-        src="${movie.rasm.startsWith('http') ? movie.rasm : baseUrl + movie.rasm}" 
-        alt="${movie.nomi}"
-        onerror="this.src='https://via.placeholder.com/200x200/222222/00ff88?text=No+Image'"
-      />
-      <h4>${movie.nomi}</h4>
-      <p style="color:var(--text-secondary);font-size:0.8rem;">${movie.yili} • ${movie.turi}</p>
+      <img src="${m.rasm.startsWith('http') ? m.rasm : base + m.rasm}" alt="${m.nomi}" onerror="this.src='https://via.placeholder.com/200x200/222/00ff88?text=No+Image'" />
+      <h4>${m.nomi}</h4>
+      <p style="color:var(--text-secondary);font-size:0.8rem;">${m.yili} • ${m.turi}</p>
       <div class="movie-actions">
-        <button class="edit-btn" onclick="editMovie('${movie._id}')">✏️ Tahrirlash</button>
-        <button class="delete-btn" onclick="deleteMovie('${movie._id}')">🗑️ O'chirish</button>
+        <button class="edit-btn" onclick="editMovie('${m._id}')">✏️</button>
+        <button class="delete-btn" onclick="deleteMovie('${m._id}')">🗑️</button>
       </div>
     </div>
   `).join('');
 }
 
-// ==================== FILM QO'SHISH / TAHRIRLASH ====================
+// ============ TURI ============
 turiSelect.addEventListener('change', function() {
   if (this.value === 'serial') {
     videoField.style.display = 'none';
@@ -162,209 +110,120 @@ turiSelect.addEventListener('change', function() {
   }
 });
 
-addQismBtn.addEventListener('click', () => {
-  const qismCount = qismlarContainer.children.length + 1;
-  const qismDiv = document.createElement('div');
-  qismDiv.className = 'qism-item';
-  qismDiv.innerHTML = `
-    <div class="form-group">
-      <label>Qism raqami</label>
-      <input type="number" class="qismRaqami" value="${qismCount}" />
-    </div>
-    <div class="form-group">
-      <label>Video fayl</label>
-      <input type="file" class="qismVideo" accept="video/*" />
-    </div>
-    <button type="button" class="btn btn-danger" style="grid-column:1/-1;justify-self:end;" onclick="this.parentElement.remove()">
-      <i class="fas fa-times"></i> O'chirish
-    </button>
-  `;
-  qismlarContainer.appendChild(qismDiv);
+// ============ QISM QO'SHISH ============
+$('addQismBtn').addEventListener('click', () => {
+  const div = document.createElement('div');
+  div.className = 'qism-item';
+  div.innerHTML = `<input type="number" class="qismRaqami" value="${qismlarContainer.children.length+1}" placeholder="Raqam" />
+                  <input type="text" class="qismVideo" placeholder="Video URL" />
+                  <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">✕</button>`;
+  qismlarContainer.appendChild(div);
 });
 
-movieForm.addEventListener('submit', async (e) => {
+// ============ SAQLASH ============
+document.getElementById('movieForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   
-  const formData = new FormData();
-  const movieData = {
-    nomi: document.getElementById('nomi').value.trim(),
-    turi: document.getElementById('turi').value,
-    janr: document.getElementById('janr').value.trim(),
-    davlati: document.getElementById('davlati').value.trim(),
-    yili: parseInt(document.getElementById('yili').value),
-    tili: document.getElementById('tili').value.trim(),
-    yoshChegarasi: document.getElementById('yoshChegarasi').value,
-    davomiyligi: document.getElementById('davomiyligi').value.trim()
+  const data = {
+    nomi: $('nomi').value.trim(),
+    turi: $('turi').value,
+    janr: $('janr').value.trim(),
+    davlati: $('davlati').value.trim(),
+    yili: parseInt($('yili').value),
+    tili: $('tili').value.trim(),
+    yoshChegarasi: $('yoshChegarasi').value,
+    davomiyligi: $('davomiyligi').value.trim(),
+    rasm: $('rasm').value.trim()
   };
-  
-  const rasmFile = document.getElementById('rasm').files[0];
-  if (rasmFile) {
-    formData.append('rasm', rasmFile);
+
+  if (data.turi === 'film') {
+    data.video = $('video').value.trim();
+  } else {
+    const items = qismlarContainer.querySelectorAll('.qism-item');
+    data.qismlar = Array.from(items).map((item, i) => ({
+      qismRaqami: parseInt(item.querySelector('.qismRaqami').value) || i+1,
+      video: item.querySelector('.qismVideo').value.trim()
+    }));
   }
-  
-  if (movieData.turi === 'film') {
-    const videoFile = document.getElementById('video').files[0];
-    if (videoFile) {
-      formData.append('video', videoFile);
-    }
-  }
-  
-  if (movieData.turi === 'serial') {
-    const qismItems = qismlarContainer.querySelectorAll('.qism-item');
-    const qismlar = [];
-    const videoFiles = [];
-    
-    qismItems.forEach((item, index) => {
-      const raqam = item.querySelector('.qismRaqami').value;
-      const video = item.querySelector('.qismVideo').files[0];
-      
-      qismlar.push({ qismRaqami: parseInt(raqam) || index + 1 });
-      if (video) {
-        videoFiles.push(video);
-      }
-    });
-    
-    formData.append('qismlar', JSON.stringify(qismlar));
-    videoFiles.forEach((video, index) => {
-      formData.append('qismlarVideo', video);
-    });
-  }
-  
-  formData.append('data', JSON.stringify(movieData));
-  
-  const isEdit = editMovieId !== null;
-  const url = isEdit ? `${API_URL}/movies/${editMovieId}` : `${API_URL}/movies`;
-  const method = isEdit ? 'PUT' : 'POST';
-  
+
   try {
-    const response = await fetch(url, {
-      method: method,
-      headers: getAuthHeaders(),
-      body: formData
+    const url = editId ? `${API_URL}/movies/${editId}` : `${API_URL}/movies`;
+    const method = editId ? 'PUT' : 'POST';
+    const res = await fetch(url, {
+      method,
+      headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
     });
-    
-    const data = await response.json();
-    
-    if (!data.success) {
-      throw new Error(data.message || 'Xatolik yuz berdi');
-    }
+    const result = await res.json();
+    if (!result.success) throw new Error(result.message);
     
     formMessage.className = 'form-message success';
-    formMessage.textContent = isEdit ? 'Film muvaffaqiyatli yangilandi!' : 'Film muvaffaqiyatli qo\'shildi!';
-    
-    movieForm.reset();
-    editMovieId = null;
-    qismlarContainer.innerHTML = `
-      <div class="qism-item">
-        <div class="form-group">
-          <label>Qism raqami</label>
-          <input type="number" class="qismRaqami" value="1" />
-        </div>
-        <div class="form-group">
-          <label>Video fayl</label>
-          <input type="file" class="qismVideo" accept="video/*" />
-        </div>
-      </div>
-    `;
-    
+    formMessage.textContent = editId ? 'Yangilandi! ✅' : 'Qo\'shildi! ✅';
+    editId = null;
+    document.getElementById('movieForm').reset();
     loadMovies();
-    
-    setTimeout(() => {
-      formMessage.className = 'form-message';
-      formMessage.textContent = '';
-    }, 5000);
-    
-  } catch (error) {
-    console.error('Film saqlash xatosi:', error);
+    setTimeout(() => { formMessage.className = 'form-message'; formMessage.textContent = ''; }, 3000);
+  } catch (e) {
     formMessage.className = 'form-message error';
-    formMessage.textContent = error.message;
+    formMessage.textContent = '❌ ' + e.message;
   }
 });
 
-// ==================== FILMNI TAHRIRLASH ====================
-async function editMovie(movieId) {
+// ============ TAHRIRLASH ============
+async function editMovie(id) {
   try {
-    const response = await fetch(`${API_URL}/movies/${movieId}`);
-    const data = await response.json();
+    const res = await fetch(`${API_URL}/movies/${id}`);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message);
+    const m = data.data;
+    editId = id;
+    $('nomi').value = m.nomi;
+    $('turi').value = m.turi;
+    $('janr').value = m.janr;
+    $('davlati').value = m.davlati;
+    $('yili').value = m.yili;
+    $('tili').value = m.tili;
+    $('yoshChegarasi').value = m.yoshChegarasi;
+    $('davomiyligi').value = m.davomiyligi;
+    $('rasm').value = m.rasm;
     
-    if (!data.success) {
-      throw new Error(data.message || 'Film ma\'lumotlarini yuklashda xatolik');
-    }
-    
-    const movie = data.data;
-    editMovieId = movieId;
-    
-    document.getElementById('nomi').value = movie.nomi;
-    document.getElementById('turi').value = movie.turi;
-    document.getElementById('janr').value = movie.janr;
-    document.getElementById('davlati').value = movie.davlati;
-    document.getElementById('yili').value = movie.yili;
-    document.getElementById('tili').value = movie.tili;
-    document.getElementById('yoshChegarasi').value = movie.yoshChegarasi;
-    document.getElementById('davomiyligi').value = movie.davomiyligi;
-    
-    turiSelect.dispatchEvent(new Event('change'));
-    
-    if (movie.turi === 'serial' && movie.qismlar && movie.qismlar.length > 0) {
+    if (m.turi === 'film') {
+      $('video').value = m.video || '';
+    } else {
       qismlarContainer.innerHTML = '';
-      movie.qismlar.forEach((qism, index) => {
-        const qismDiv = document.createElement('div');
-        qismDiv.className = 'qism-item';
-        qismDiv.innerHTML = `
-          <div class="form-group">
-            <label>Qism raqami</label>
-            <input type="number" class="qismRaqami" value="${qism.qismRaqami}" />
-          </div>
-          <div class="form-group">
-            <label>Video fayl (hozirgi: ${qism.video.split('/').pop()})</label>
-            <input type="file" class="qismVideo" accept="video/*" />
-          </div>
-          <button type="button" class="btn btn-danger" style="grid-column:1/-1;justify-self:end;" onclick="this.parentElement.remove()">
-            <i class="fas fa-times"></i> O'chirish
-          </button>
-        `;
-        qismlarContainer.appendChild(qismDiv);
+      m.qismlar?.forEach((q, i) => {
+        const div = document.createElement('div');
+        div.className = 'qism-item';
+        div.innerHTML = `<input type="number" class="qismRaqami" value="${q.qismRaqami || i+1}" placeholder="Raqam" />
+                        <input type="text" class="qismVideo" value="${q.video}" placeholder="Video URL" />
+                        <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">✕</button>`;
+        qismlarContainer.appendChild(div);
       });
     }
-    
-    document.querySelector('#adminPanel h2').scrollIntoView({ behavior: 'smooth' });
-    
+    turiSelect.dispatchEvent(new Event('change'));
     formMessage.className = 'form-message';
-    formMessage.textContent = '✏️ Film tahrirlash rejimida. Yangilash uchun saqlang.';
-    
-  } catch (error) {
-    console.error('Filmni tahrirlash xatosi:', error);
-    alert('Xatolik: ' + error.message);
+    formMessage.textContent = '✏️ Tahrirlash rejimi';
+    document.querySelector('#adminPanel h2').scrollIntoView({ behavior: 'smooth' });
+  } catch (e) {
+    alert('Xatolik: ' + e.message);
   }
 }
 
-// ==================== FILMNI O'CHIRISH ====================
-async function deleteMovie(movieId) {
-  if (!confirm('Bu filmni o\'chirishga ishonchingiz komilmi?')) {
-    return;
-  }
-  
+// ============ O'CHIRISH ============
+async function deleteMovie(id) {
+  if (!confirm('O\'chirilsinmi?')) return;
   try {
-    const response = await fetch(`${API_URL}/movies/${movieId}`, {
+    const res = await fetch(`${API_URL}/movies/${id}`, {
       method: 'DELETE',
-      headers: getAuthHeaders()
+      headers: getHeaders()
     });
-    
-    const data = await response.json();
-    
-    if (!data.success) {
-      throw new Error(data.message || 'O\'chirishda xatolik');
-    }
-    
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message);
     loadMovies();
-    
-  } catch (error) {
-    console.error('Filmni o\'chirish xatosi:', error);
-    alert('Xatolik: ' + error.message);
+  } catch (e) {
+    alert('Xatolik: ' + e.message);
   }
 }
 
-// ==================== SAHIFA YUKLANGANDA ====================
-document.addEventListener('DOMContentLoaded', () => {
-  checkAuth();
-});
+// ============ LOAD ============
+document.addEventListener('DOMContentLoaded', checkAuth);
