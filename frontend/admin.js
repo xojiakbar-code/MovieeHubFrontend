@@ -1,4 +1,4 @@
-// Admin Panel - Optimallashtirilgan
+// Admin Panel - Tuzatilgan
 const API_URL = 'https://movieehubbackend.onrender.com/api';
 
 const $ = id => document.getElementById(id);
@@ -18,7 +18,11 @@ let editId = null;
 // ============ AUTH ============
 function checkAuth() {
   const token = localStorage.getItem('adminToken');
-  if (token) { showPanel(); } else { showLogin(); }
+  if (token) { 
+    showPanel(); 
+  } else { 
+    showLogin(); 
+  }
 }
 
 function showLogin() {
@@ -37,23 +41,48 @@ function showPanel() {
 // ============ LOGIN ============
 document.getElementById('loginFormElement').addEventListener('submit', async (e) => {
   e.preventDefault();
+  
   const username = $('username').value.trim();
   const password = $('password').value.trim();
-  if (!username || !password) { loginError.textContent = 'Iltimos, barcha maydonlarni to\'ldiring'; return; }
+  
+  if (!username || !password) { 
+    loginError.textContent = 'Iltimos, username va parolni kiriting'; 
+    return; 
+  }
+  
   loginError.textContent = '';
+  const btn = e.target.querySelector('button[type="submit"]');
+  const originalText = btn.textContent;
+  btn.textContent = '⏳ Kirilmoqda...';
+  btn.disabled = true;
   
   try {
+    console.log('📤 Login so\'rovi:', { username });
+    
     const res = await fetch(`${API_URL}/admin/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
     });
+    
+    console.log('📥 Javob status:', res.status);
     const data = await res.json();
-    if (!data.success) throw new Error(data.message || 'Login xatosi');
+    console.log('📥 Javob:', data);
+    
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || 'Noto\'g\'ri ma\'lumotlar');
+    }
+    
     localStorage.setItem('adminToken', data.token);
     showPanel();
+    loginError.textContent = '';
+    
   } catch (e) {
-    loginError.textContent = e.message;
+    console.error('❌ Login xatosi:', e);
+    loginError.textContent = e.message || 'Noto\'g\'ri ma\'lumotlar';
+  } finally {
+    btn.textContent = originalText;
+    btn.disabled = false;
   }
 });
 
@@ -65,7 +94,10 @@ logoutBtn.addEventListener('click', () => {
 
 // ============ HEADERS ============
 function getHeaders() {
-  return { 'Authorization': `Bearer ${localStorage.getItem('adminToken')}` };
+  return { 
+    'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+    'Content-Type': 'application/json'
+  };
 }
 
 // ============ FILMLARNI YUKLASH ============
@@ -76,21 +108,23 @@ async function loadMovies() {
     if (!data.success) throw new Error(data.message);
     renderList(data.data);
   } catch (e) {
-    moviesList.innerHTML = `<div style="color:var(--accent-red);padding:20px;">❌ ${e.message}</div>`;
+    moviesList.innerHTML = `<div style="color:var(--color-danger);padding:20px;">❌ ${e.message}</div>`;
   }
 }
 
 function renderList(movies) {
   if (!movies?.length) {
-    moviesList.innerHTML = '<div style="color:var(--text-secondary);padding:20px;">Hali film yo\'q</div>';
+    moviesList.innerHTML = '<div style="color:var(--color-text-secondary);padding:20px;">Hali film yo\'q</div>';
     return;
   }
   const base = 'https://movieehubbackend.onrender.com';
   moviesList.innerHTML = movies.map(m => `
     <div class="movie-item">
-      <img src="${m.rasm.startsWith('http') ? m.rasm : base + m.rasm}" alt="${m.nomi}" onerror="this.src='https://via.placeholder.com/200x200/222/00ff88?text=No+Image'" />
+      <img src="${m.rasm.startsWith('http') ? m.rasm : base + m.rasm}" 
+           alt="${m.nomi}" 
+           onerror="this.src='https://via.placeholder.com/200x200/222/00ff88?text=No+Image'" />
       <h4>${m.nomi}</h4>
-      <p style="color:var(--text-secondary);font-size:0.8rem;">${m.yili} • ${m.turi}</p>
+      <p style="color:var(--color-text-secondary);font-size:0.8rem;">${m.yili} • ${m.turi}</p>
       <div class="movie-actions">
         <button class="edit-btn" onclick="editMovie('${m._id}')">✏️</button>
         <button class="delete-btn" onclick="deleteMovie('${m._id}')">🗑️</button>
@@ -114,9 +148,11 @@ turiSelect.addEventListener('change', function() {
 $('addQismBtn').addEventListener('click', () => {
   const div = document.createElement('div');
   div.className = 'qism-item';
-  div.innerHTML = `<input type="number" class="qismRaqami" value="${qismlarContainer.children.length+1}" placeholder="Raqam" />
-                  <input type="text" class="qismVideo" placeholder="Video URL" />
-                  <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">✕</button>`;
+  div.innerHTML = `
+    <input type="number" class="qismRaqami" value="${qismlarContainer.children.length+1}" placeholder="Raqam" />
+    <input type="text" class="qismVideo" placeholder="Video URL" />
+    <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">✕</button>
+  `;
   qismlarContainer.appendChild(div);
 });
 
@@ -151,18 +187,21 @@ document.getElementById('movieForm').addEventListener('submit', async (e) => {
     const method = editId ? 'PUT' : 'POST';
     const res = await fetch(url, {
       method,
-      headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+      headers: getHeaders(),
       body: JSON.stringify(data)
     });
     const result = await res.json();
     if (!result.success) throw new Error(result.message);
     
     formMessage.className = 'form-message success';
-    formMessage.textContent = editId ? 'Yangilandi! ✅' : 'Qo\'shildi! ✅';
+    formMessage.textContent = editId ? '✅ Yangilandi!' : '✅ Qo\'shildi!';
     editId = null;
     document.getElementById('movieForm').reset();
     loadMovies();
-    setTimeout(() => { formMessage.className = 'form-message'; formMessage.textContent = ''; }, 3000);
+    setTimeout(() => { 
+      formMessage.className = 'form-message'; 
+      formMessage.textContent = ''; 
+    }, 3000);
   } catch (e) {
     formMessage.className = 'form-message error';
     formMessage.textContent = '❌ ' + e.message;
@@ -194,9 +233,11 @@ async function editMovie(id) {
       m.qismlar?.forEach((q, i) => {
         const div = document.createElement('div');
         div.className = 'qism-item';
-        div.innerHTML = `<input type="number" class="qismRaqami" value="${q.qismRaqami || i+1}" placeholder="Raqam" />
-                        <input type="text" class="qismVideo" value="${q.video}" placeholder="Video URL" />
-                        <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">✕</button>`;
+        div.innerHTML = `
+          <input type="number" class="qismRaqami" value="${q.qismRaqami || i+1}" placeholder="Raqam" />
+          <input type="text" class="qismVideo" value="${q.video}" placeholder="Video URL" />
+          <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">✕</button>
+        `;
         qismlarContainer.appendChild(div);
       });
     }
