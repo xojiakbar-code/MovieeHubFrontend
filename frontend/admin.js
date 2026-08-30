@@ -1,11 +1,10 @@
 // =========================================================
-// MOVIEHUB ADMIN - HIGH PERFORMANCE
+// MOVIEHUB ADMIN PANEL - TO'LIQ
 // =========================================================
 
 const API_URL = 'https://movieehubbackend.onrender.com/api';
 const BASE_URL = 'https://movieehubbackend.onrender.com';
 
-// DOM elementlari
 const $ = id => document.getElementById(id);
 
 const loginForm = $('loginForm');
@@ -27,7 +26,6 @@ const qismlarContainer = $('qismlarContainer');
 const addQismBtn = $('addQismBtn');
 
 let editMovieId = null;
-let loadTimeout = null;
 
 // =========================================================
 // AUTH
@@ -182,9 +180,7 @@ async function loadMovies() {
         <div style="color:var(--color-danger);padding:20px;text-align:center;grid-column:1/-1;">
           ⏳ So'rov uzoq davom etmoqda
           <br />
-          <button onclick="loadMovies()" class="btn btn-primary" style="margin-top:10px;">
-            Qayta urinish
-          </button>
+          <button onclick="loadMovies()" class="btn btn-primary" style="margin-top:10px;">Qayta urinish</button>
         </div>
       `;
     } else {
@@ -192,9 +188,7 @@ async function loadMovies() {
         <div style="color:var(--color-danger);padding:20px;text-align:center;grid-column:1/-1;">
           ❌ ${error.message}
           <br />
-          <button onclick="loadMovies()" class="btn btn-primary" style="margin-top:10px;">
-            Qayta urinish
-          </button>
+          <button onclick="loadMovies()" class="btn btn-primary" style="margin-top:10px;">Qayta urinish</button>
         </div>
       `;
     }
@@ -202,7 +196,7 @@ async function loadMovies() {
 }
 
 // =========================================================
-// RENDER (TEZKOR)
+// RENDER
 // =========================================================
 
 function renderMoviesList(movies) {
@@ -391,10 +385,7 @@ async function editMovie(movieId) {
     clearTimeout(timeoutId);
     
     const data = await res.json();
-    
-    if (!data.success) {
-      throw new Error(data.message || 'Xatolik');
-    }
+    if (!data.success) throw new Error(data.message || 'Xatolik');
     
     const movie = data.data;
     editMovieId = movieId;
@@ -495,18 +486,13 @@ function showMessage(text, type = 'info') {
   } else if (type === 'error') {
     formMessage.classList.add('error');
   } else if (type === 'info') {
-    formMessage.style.color = 'var(--color-text-secondary)';
-    formMessage.style.border = '1px solid var(--color-border)';
-    formMessage.style.background = 'var(--color-surface)';
+    formMessage.classList.add('info');
   }
   
   clearTimeout(formMessage._timeout);
   formMessage._timeout = setTimeout(() => {
     formMessage.textContent = '';
     formMessage.className = 'form-message';
-    formMessage.style.color = '';
-    formMessage.style.border = '';
-    formMessage.style.background = '';
   }, 4000);
 }
 
@@ -519,7 +505,6 @@ document.addEventListener('DOMContentLoaded', () => {
   checkAuth();
 });
 
-// Console uchun
 window.loadMovies = loadMovies;
 window.editMovie = editMovie;
 window.deleteMovie = deleteMovie;
