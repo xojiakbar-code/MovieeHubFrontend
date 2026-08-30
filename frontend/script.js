@@ -1,5 +1,5 @@
 // =========================================================
-// MOVIEHUB FRONTEND - OPTIMALLASHTIRILGAN
+// MOVIEHUB FRONTEND - TO'LIQ VERSIYA
 // =========================================================
 
 const API_URL = 'https://movieehubbackend.onrender.com/api';
@@ -23,7 +23,10 @@ const loadingText = $('loadingText');
 let currentMovie = null;
 let isFirstLoad = true;
 
-// ============ LOADING ============
+// =========================================================
+// LOADING
+// =========================================================
+
 function showLoading(msg = 'Yuklanmoqda...') {
   loadingText.textContent = msg;
   loadingOverlay.classList.add('active');
@@ -33,7 +36,10 @@ function hideLoading() {
   loadingOverlay.classList.remove('active');
 }
 
-// ============ DEFAULT RASM ============
+// =========================================================
+// DEFAULT IMAGE
+// =========================================================
+
 function getDefaultImage() {
   return 'data:image/svg+xml,' + encodeURIComponent(`
     <svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400">
@@ -44,7 +50,10 @@ function getDefaultImage() {
   `);
 }
 
-// ============ URL TO'G'RILASH ============
+// =========================================================
+// URL FIX FUNKSIYALARI
+// =========================================================
+
 function fixImageUrl(url) {
   if (!url) return getDefaultImage();
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
@@ -61,7 +70,10 @@ function fixVideoUrl(url) {
   return BASE_URL + '/uploads/' + url;
 }
 
-// ============ YOUTUBE ============
+// =========================================================
+// YOUTUBE FUNKSIYALARI
+// =========================================================
+
 function isYouTubeUrl(url) {
   if (!url) return false;
   return url.includes('youtube.com') || url.includes('youtu.be');
@@ -69,6 +81,7 @@ function isYouTubeUrl(url) {
 
 function getYouTubeEmbedUrl(url) {
   let videoId = '';
+  
   if (url.includes('watch?v=')) {
     videoId = url.split('watch?v=')[1].split('&')[0];
   } else if (url.includes('youtu.be/')) {
@@ -76,13 +89,18 @@ function getYouTubeEmbedUrl(url) {
   } else if (url.includes('/embed/')) {
     videoId = url.split('/embed/')[1].split('?')[0];
   }
+  
   if (videoId) {
-    return `https://www.youtube.com/embed/${videoId}?autoplay=0&rel=0&modestbranding=1`;
+    // Toza pleyer - hech qanday qo'shimcha elementlar ko'rinmaydi
+    return `https://www.youtube.com/embed/${videoId}?autoplay=0&rel=0&modestbranding=1&showinfo=0&iv_load_policy=3&controls=1&color=white&disablekb=1&fs=1&hl=uz`;
   }
   return url;
 }
 
-// ============ FILMLARNI YUKLASH ============
+// =========================================================
+// FILMLARNI YUKLASH
+// =========================================================
+
 async function loadMovies(search = '') {
   if (!isFirstLoad) showLoading('Filmlar yuklanmoqda...');
   
@@ -127,7 +145,10 @@ async function loadMovies(search = '') {
   hideLoading();
 }
 
-// ============ RENDER ============
+// =========================================================
+// RENDER MOVIES
+// =========================================================
+
 function renderMovies(movies) {
   if (!movies || movies.length === 0) {
     moviesGrid.innerHTML = `
@@ -164,7 +185,10 @@ function renderMovies(movies) {
   }).join('');
 }
 
-// ============ FILMNI OCHISH ============
+// =========================================================
+// FILMNI OCHISH
+// =========================================================
+
 async function openMovie(id) {
   showLoading('Film yuklanmoqda...');
   
@@ -200,7 +224,10 @@ async function openMovie(id) {
   }
 }
 
-// ============ DETAILS ============
+// =========================================================
+// SHOW DETAILS
+// =========================================================
+
 function showDetails(m) {
   const defaultImg = getDefaultImage();
   const posterUrl = fixImageUrl(m.rasm);
@@ -219,6 +246,7 @@ function showDetails(m) {
               allowfullscreen
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               loading="lazy"
+              sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
             ></iframe>
           </div>
         `;
@@ -256,6 +284,7 @@ function showDetails(m) {
               allowfullscreen
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               loading="lazy"
+              sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
             ></iframe>
           </div>
         `;
@@ -299,7 +328,10 @@ function showDetails(m) {
   movieModal.classList.add('active');
 }
 
-// ============ QISM ============
+// =========================================================
+// PLAY QISM
+// =========================================================
+
 function playQism(index) {
   const m = currentMovie;
   if (!m?.qismlar?.[index]) return;
@@ -322,6 +354,7 @@ function playQism(index) {
             allowfullscreen
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             loading="lazy"
+            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
           ></iframe>
         `;
       } else {
@@ -333,7 +366,10 @@ function playQism(index) {
   }
 }
 
-// ============ EVENTS ============
+// =========================================================
+// EVENTS
+// =========================================================
+
 ageYes.addEventListener('click', () => { 
   ageModal.classList.remove('active'); 
   showDetails(currentMovie); 
@@ -371,7 +407,10 @@ searchInput.addEventListener('keypress', (e) => {
   if (e.key === 'Enter') searchBtn.click(); 
 });
 
-// ============ LOAD ============
+// =========================================================
+// LOAD
+// =========================================================
+
 document.addEventListener('DOMContentLoaded', () => {
   moviesGrid.innerHTML = Array(8).fill(0).map(() => `
     <div class="loading-card">
