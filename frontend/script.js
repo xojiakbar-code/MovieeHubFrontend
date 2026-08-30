@@ -21,22 +21,19 @@ const loadingOverlay = $('loadingOverlay');
 const loadingText = $('loadingText');
 
 let currentMovie = null;
-let loadTimeout = null;
 let isFirstLoad = true;
 
-// ============ LOADING (TEZKOR) ============
+// ============ LOADING ============
 function showLoading(msg = 'Yuklanmoqda...') {
-  clearTimeout(loadTimeout);
   loadingText.textContent = msg;
   loadingOverlay.classList.add('active');
 }
 
 function hideLoading() {
-  clearTimeout(loadTimeout);
   loadingOverlay.classList.remove('active');
 }
 
-// ============ DEFAULT RASM (TEZKOR) ============
+// ============ DEFAULT RASM ============
 function getDefaultImage() {
   return 'data:image/svg+xml,' + encodeURIComponent(`
     <svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400">
@@ -47,7 +44,7 @@ function getDefaultImage() {
   `);
 }
 
-// ============ RASM URL NI TO'G'RILASH ============
+// ============ URL TO'G'RILASH ============
 function fixImageUrl(url) {
   if (!url) return getDefaultImage();
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
@@ -56,7 +53,6 @@ function fixImageUrl(url) {
   return BASE_URL + '/uploads/' + url;
 }
 
-// ============ VIDEO URL NI TO'G'RILASH ============
 function fixVideoUrl(url) {
   if (!url) return '';
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
@@ -81,37 +77,28 @@ function getYouTubeEmbedUrl(url) {
     videoId = url.split('/embed/')[1].split('?')[0];
   }
   if (videoId) {
-    return `https://www.youtube.com/embed/${videoId}`;
+    return `https://www.youtube.com/embed/${videoId}?autoplay=0&rel=0&modestbranding=1`;
   }
   return url;
 }
 
-// ============ FILMLARNI YUKLASH (TEZKOR) ============
+// ============ FILMLARNI YUKLASH ============
 async function loadMovies(search = '') {
-  // Agar birinchi yuklash bo'lmasa, loading ko'rsat
-  if (!isFirstLoad) {
-    showLoading('Filmlar yuklanmoqda...');
-  }
+  if (!isFirstLoad) showLoading('Filmlar yuklanmoqda...');
   
   try {
     const url = search ? `${API_URL}/movies/search?q=${encodeURIComponent(search)}` : `${API_URL}/movies`;
     
-    // 5 soniyadan keyin timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
     
     const res = await fetch(url, { signal: controller.signal });
     clearTimeout(timeoutId);
     
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
-    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     
     const data = await res.json();
-    
-    if (!data.success) {
-      throw new Error(data.message || 'Xatolik');
-    }
+    if (!data.success) throw new Error(data.message || 'Xatolik');
     
     renderMovies(data.data || []);
     isFirstLoad = false;
@@ -121,11 +108,9 @@ async function loadMovies(search = '') {
     if (error.name === 'AbortError') {
       moviesGrid.innerHTML = `
         <div style="text-align:center;color:var(--color-danger);padding:40px;grid-column:1/-1;">
-          ⏳ So'rov juda uzoq davom etmoqda
+          ⏳ So'rov uzoq davom etmoqda
           <br />
-          <button onclick="loadMovies()" class="btn btn-primary" style="margin-top:10px;">
-            Qayta urinish
-          </button>
+          <button onclick="loadMovies()" class="btn btn-primary" style="margin-top:10px;">Qayta urinish</button>
         </div>
       `;
     } else {
@@ -133,9 +118,7 @@ async function loadMovies(search = '') {
         <div style="text-align:center;color:var(--color-danger);padding:40px;grid-column:1/-1;">
           ❌ Xatolik: ${error.message}
           <br />
-          <button onclick="loadMovies()" class="btn btn-primary" style="margin-top:10px;">
-            Qayta urinish
-          </button>
+          <button onclick="loadMovies()" class="btn btn-primary" style="margin-top:10px;">Qayta urinish</button>
         </div>
       `;
     }
@@ -144,7 +127,7 @@ async function loadMovies(search = '') {
   hideLoading();
 }
 
-// ============ RENDER (TEZKOR) ============
+// ============ RENDER ============
 function renderMovies(movies) {
   if (!movies || movies.length === 0) {
     moviesGrid.innerHTML = `
@@ -181,7 +164,7 @@ function renderMovies(movies) {
   }).join('');
 }
 
-// ============ FILMNI OCHISH (TEZKOR) ============
+// ============ FILMNI OCHISH ============
 async function openMovie(id) {
   showLoading('Film yuklanmoqda...');
   
@@ -192,15 +175,10 @@ async function openMovie(id) {
     const res = await fetch(`${API_URL}/movies/${id}`, { signal: controller.signal });
     clearTimeout(timeoutId);
     
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
-    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     
     const data = await res.json();
-    
-    if (!data.success) {
-      throw new Error(data.message || 'Film topilmadi');
-    }
+    if (!data.success) throw new Error(data.message || 'Film topilmadi');
     
     currentMovie = data.data;
     hideLoading();
@@ -215,7 +193,7 @@ async function openMovie(id) {
   } catch (error) {
     hideLoading();
     if (error.name === 'AbortError') {
-      alert('⏳ So\'rov juda uzoq davom etmoqda. Iltimos, qayta urinib ko\'ring.');
+      alert('⏳ So\'rov uzoq davom etmoqda. Qayta urinib ko\'ring.');
     } else {
       alert('❌ Xatolik: ' + error.message);
     }
@@ -236,15 +214,12 @@ function showDetails(m) {
         const embedUrl = getYouTubeEmbedUrl(videoUrl);
         videoHtml = `
           <div class="modal-video">
-            <div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:10px;">
-              <iframe 
-                src="${embedUrl}" 
-                style="position:absolute;top:0;left:0;width:100%;height:100%;"
-                allowfullscreen
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                frameborder="0"
-              ></iframe>
-            </div>
+            <iframe 
+              src="${embedUrl}" 
+              allowfullscreen
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              loading="lazy"
+            ></iframe>
           </div>
         `;
       } else {
@@ -276,15 +251,12 @@ function showDetails(m) {
         const embedUrl = getYouTubeEmbedUrl(firstVideo);
         videoHtml = `
           <div class="modal-video">
-            <div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:10px;">
-              <iframe 
-                src="${embedUrl}" 
-                style="position:absolute;top:0;left:0;width:100%;height:100%;"
-                allowfullscreen
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                frameborder="0"
-              ></iframe>
-            </div>
+            <iframe 
+              src="${embedUrl}" 
+              allowfullscreen
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              loading="lazy"
+            ></iframe>
           </div>
         `;
       } else {
@@ -344,15 +316,13 @@ function playQism(index) {
         const embedUrl = getYouTubeEmbedUrl(videoUrl);
         const parent = player.parentElement;
         parent.innerHTML = `
-          <div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:10px;">
-            <iframe 
-              src="${embedUrl}" 
-              style="position:absolute;top:0;left:0;width:100%;height:100%;"
-              allowfullscreen
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              frameborder="0"
-            ></iframe>
-          </div>
+          <iframe 
+            src="${embedUrl}" 
+            style="width:100%;height:450px;border-radius:10px;border:none;"
+            allowfullscreen
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            loading="lazy"
+          ></iframe>
         `;
       } else {
         player.src = videoUrl;
@@ -403,7 +373,6 @@ searchInput.addEventListener('keypress', (e) => {
 
 // ============ LOAD ============
 document.addEventListener('DOMContentLoaded', () => {
-  // Loading kartochkalar
   moviesGrid.innerHTML = Array(8).fill(0).map(() => `
     <div class="loading-card">
       <div class="poster-placeholder"></div>
@@ -414,6 +383,5 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   `).join('');
   
-  // 100ms dan keyin yuklash (sahifa to'liq yuklanishi uchun)
   setTimeout(() => loadMovies(), 100);
 });
