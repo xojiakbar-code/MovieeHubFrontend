@@ -100,7 +100,6 @@ img {
   outline-offset: 2px;
 }
 
-/* Scrollbar - Apple style */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -540,6 +539,14 @@ img {
   color: var(--color-text-secondary);
 }
 
+.modal-video iframe {
+  width: 100%;
+  height: 450px;
+  border-radius: var(--radius-md);
+  background: #000;
+  border: none;
+}
+
 .modal-video video {
   width: 100%;
   border-radius: var(--radius-md);
@@ -657,14 +664,6 @@ img {
   font-size: 1.3rem;
   margin-bottom: 26px;
   color: var(--color-text);
-}
-
-.admin-login h2 svg {
-  display: inline-block;
-  vertical-align: middle;
-  margin-right: 10px;
-  width: 28px;
-  height: 28px;
 }
 
 .form-group {
@@ -903,6 +902,10 @@ hr {
     padding: 18px;
   }
 
+  .modal-video iframe {
+    height: 250px;
+  }
+
   .age-buttons {
     flex-direction: column;
   }
@@ -943,5 +946,9 @@ hr {
   .admin-login {
     padding: 20px;
     margin: 20px 10px;
+  }
+
+  .modal-video iframe {
+    height: 180px;
   }
 }
