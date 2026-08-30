@@ -1077,24 +1077,50 @@ hr {
     height: 180px;
   }
 }
-
 /* =========================================================
-   QISMLAR TUGMALARI
+   MODAL - CHAPDA RASM+QISMLAR, O'NGDA VIDEO
    ========================================================= */
+
+.modal-movie-detail {
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  gap: 28px;
+}
+
+/* CHAP TOMON - RASM + QISMLAR */
+.modal-left {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modal-poster-container {
+  position: sticky;
+  top: 20px;
+}
+
+.modal-poster {
+  width: 100%;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  background: var(--color-surface);
+}
+
+/* QISMLAR - RASM OSTIDA (CHAPDA) */
 .qismlar-list {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin: 8px 0 16px 0;
+  margin-top: 4px;
 }
 
 .qism-btn {
-  padding: 7px 16px;
+  padding: 6px 14px;
   background: var(--color-surface-raised);
   border: 0.5px solid var(--color-border);
   border-radius: var(--radius-pill);
   color: var(--color-text-secondary);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: var(--font-weight-medium);
   cursor: pointer;
   transition: all var(--duration) var(--ease);
@@ -1109,4 +1135,117 @@ hr {
   background: var(--color-accent);
   border-color: var(--color-accent);
   color: #fff;
+}
+
+/* O'NG TOMON - VIDEO + MA'LUMOTLAR */
+.modal-right {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal-video {
+  width: 100%;
+  border-radius: var(--radius-md);
+  background: #000;
+  overflow: hidden;
+}
+
+.modal-video iframe {
+  width: 100%;
+  height: 450px;
+  border: none;
+}
+
+.modal-video video {
+  width: 100%;
+  max-height: 450px;
+  border-radius: var(--radius-md);
+  background: #000;
+}
+
+.modal-right h2 {
+  font-size: 1.5rem;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.02em;
+  margin-top: 4px;
+}
+
+.modal-right .movie-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0;
+}
+
+.modal-right .movie-meta span {
+  background: var(--color-surface-raised);
+  border: 0.5px solid var(--color-border);
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+}
+
+/* =========================================================
+   TELEFON VERSIYA
+   ========================================================= */
+@media (max-width: 768px) {
+  .modal-movie-detail {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .modal-left {
+    flex-direction: row;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  
+  .modal-poster-container {
+    position: static;
+    width: 120px;
+    flex-shrink: 0;
+  }
+  
+  .modal-poster {
+    height: 160px;
+    object-fit: cover;
+  }
+  
+  .qismlar-list {
+    flex: 1;
+    margin-top: 0;
+  }
+  
+  .modal-video iframe {
+    height: 250px;
+  }
+  
+  .modal-video video {
+    max-height: 250px;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-left {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .modal-poster-container {
+    width: 100%;
+  }
+  
+  .modal-poster {
+    height: 200px;
+  }
+  
+  .modal-video iframe {
+    height: 180px;
+  }
+  
+  .modal-video video {
+    max-height: 180px;
+  }
 }
