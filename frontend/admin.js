@@ -1,5 +1,5 @@
 // =========================================================
-// MOVIEHUB ADMIN PANEL - TO'LIQ
+// MOVIEHUB ADMIN - HIGH PERFORMANCE
 // =========================================================
 
 const API_URL = 'https://movieehubbackend.onrender.com/api';
@@ -27,15 +27,15 @@ const qismlarContainer = $('qismlarContainer');
 const addQismBtn = $('addQismBtn');
 
 let editMovieId = null;
+let loadTimeout = null;
 
 // =========================================================
-// AUTH FUNKSIYALAR
+// AUTH
 // =========================================================
 
 function checkAuth() {
   const token = localStorage.getItem('adminToken');
   if (token) {
-    // Token mavjud, lekin yaroqliligini tekshirish kerak
     verifyToken();
   } else {
     showLoginForm();
@@ -46,21 +46,18 @@ async function verifyToken() {
   try {
     const token = localStorage.getItem('adminToken');
     const res = await fetch(`${API_URL}/movies`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+      headers: { 'Authorization': `Bearer ${token}` },
+      signal: AbortSignal.timeout(3000)
     });
     
     if (res.ok) {
       showAdminPanel();
     } else {
-      // Token yaroqsiz
       localStorage.removeItem('adminToken');
       localStorage.removeItem('adminUsername');
       showLoginForm();
     }
-  } catch (error) {
-    console.error('Token tekshirish xatosi:', error);
+  } catch {
     showLoginForm();
   }
 }
@@ -80,7 +77,7 @@ function showAdminPanel() {
 }
 
 // =========================================================
-// LOGIN
+// LOGIN (TEZKOR)
 // =========================================================
 
 loginFormElement.addEventListener('submit', async (e) => {
@@ -89,15 +86,8 @@ loginFormElement.addEventListener('submit', async (e) => {
   const username = usernameInput.value.trim();
   const password = passwordInput.value.trim();
   
-  console.log('========================================');
-  console.log('📤 LOGIN SO\'ROVI YUBORILMOQDA');
-  console.log(`   Username: ${username}`);
-  console.log(`   Password: ${password ? '*****' : 'Yo\'q'}`);
-  console.log(`   API URL: ${API_URL}/admin/login`);
-  console.log('========================================');
-  
   if (!username || !password) {
-    loginError.textContent = 'Iltimos, username va parolni kiriting';
+    loginError.textContent = 'Username va parolni kiriting';
     return;
   }
   
@@ -108,39 +98,37 @@ loginFormElement.addEventListener('submit', async (e) => {
   btn.disabled = true;
   
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
     const res = await fetch(`${API_URL}/admin/login`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ username, password })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+      signal: controller.signal
     });
     
-    console.log(`📥 Javob status: ${res.status}`);
+    clearTimeout(timeoutId);
     
     const data = await res.json();
-    console.log('📥 Javob:', data);
     
-    if (!res.ok) {
-      throw new Error(data.message || `HTTP ${res.status} xatosi`);
-    }
-    
-    if (!data.success) {
+    if (!res.ok || !data.success) {
       throw new Error(data.message || 'Noto\'g\'ri ma\'lumotlar');
     }
     
-    // Tokenni saqlash
     localStorage.setItem('adminToken', data.token);
     localStorage.setItem('adminUsername', data.admin.username);
     
-    console.log('✅ LOGIN MUVAFFAQIYATLI!');
     showAdminPanel();
     loginFormElement.reset();
     loginError.textContent = '';
     
   } catch (error) {
-    console.error('❌ LOGIN XATOSI:', error);
-    loginError.textContent = error.message || 'Noto\'g\'ri ma\'lumotlar';
+    if (error.name === 'AbortError') {
+      loginError.textContent = '⏳ So\'rov uzoq davom etmoqda. Qayta urinib ko\'ring.';
+    } else {
+      loginError.textContent = error.message || 'Noto\'g\'ri ma\'lumotlar';
+    }
   } finally {
     btn.textContent = originalText;
     btn.disabled = false;
@@ -155,7 +143,6 @@ logoutBtn.addEventListener('click', () => {
   localStorage.removeItem('adminToken');
   localStorage.removeItem('adminUsername');
   showLoginForm();
-  console.log('👋 Logout qilindi');
 });
 
 // =========================================================
@@ -171,52 +158,67 @@ function getAuthHeaders() {
 }
 
 // =========================================================
-// FILMLARNI YUKLASH
+// FILMLARNI YUKLASH (TEZKOR)
 // =========================================================
 
 async function loadMovies() {
   try {
-    const res = await fetch(`${API_URL}/movies`);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
+    const res = await fetch(`${API_URL}/movies`, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    
     const data = await res.json();
     
     if (!data.success) {
-      throw new Error(data.message || 'Filmlarni yuklashda xatolik');
+      throw new Error(data.message || 'Xatolik');
     }
     
-    renderMoviesList(data.data);
+    renderMoviesList(data.data || []);
   } catch (error) {
-    console.error('Filmlarni yuklash xatosi:', error);
-    moviesList.innerHTML = `
-      <div style="color:var(--color-danger);padding:20px;text-align:center;grid-column:1/-1;">
-        ❌ ${error.message}
-        <br />
-        <button onclick="loadMovies()" class="btn btn-primary" style="margin-top:10px;">
-          Qayta urinish
-        </button>
-      </div>
-    `;
+    if (error.name === 'AbortError') {
+      moviesList.innerHTML = `
+        <div style="color:var(--color-danger);padding:20px;text-align:center;grid-column:1/-1;">
+          ⏳ So'rov uzoq davom etmoqda
+          <br />
+          <button onclick="loadMovies()" class="btn btn-primary" style="margin-top:10px;">
+            Qayta urinish
+          </button>
+        </div>
+      `;
+    } else {
+      moviesList.innerHTML = `
+        <div style="color:var(--color-danger);padding:20px;text-align:center;grid-column:1/-1;">
+          ❌ ${error.message}
+          <br />
+          <button onclick="loadMovies()" class="btn btn-primary" style="margin-top:10px;">
+            Qayta urinish
+          </button>
+        </div>
+      `;
+    }
   }
 }
 
 // =========================================================
-// FILMLAR RO'YXATINI CHIQARISH
+// RENDER (TEZKOR)
 // =========================================================
 
 function renderMoviesList(movies) {
   if (!movies || movies.length === 0) {
     moviesList.innerHTML = `
       <div style="color:var(--color-text-secondary);padding:20px;text-align:center;grid-column:1/-1;">
-        📺 Hali hech qanday film qo'shilmagan
+        📺 Hali film qo'shilmagan
       </div>
     `;
     return;
   }
 
   moviesList.innerHTML = movies.map(movie => {
-    // Rasm URL ni to'g'rilash
     let imgUrl = '';
     if (movie.rasm) {
-      if (movie.rasm.startsWith('http://') || movie.rasm.startsWith('https://')) {
+      if (movie.rasm.startsWith('http')) {
         imgUrl = movie.rasm;
       } else if (movie.rasm.startsWith('/uploads/')) {
         imgUrl = BASE_URL + movie.rasm;
@@ -228,21 +230,18 @@ function renderMoviesList(movies) {
     return `
       <div class="movie-item" data-id="${movie._id}">
         <img 
-          src="${imgUrl || 'https://via.placeholder.com/200x300/222/00ff88?text=No+Image'}" 
+          src="${imgUrl || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22300%22%3E%3Crect fill=%22%23222%22 width=%22200%22 height=%22300%22/%3E%3Ctext x=%22100%22 y=%22150%22 font-family=%22Arial%22 font-size=%2230%22 text-anchor=%22middle%22 fill=%22%23666%22%3E🎬%3C/text%3E%3C/svg%3E'}" 
           alt="${movie.nomi}"
-          onerror="this.src='https://via.placeholder.com/200x300/222/00ff88?text=No+Image'"
+          loading="lazy"
+          onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22300%22%3E%3Crect fill=%22%23222%22 width=%22200%22 height=%22300%22/%3E%3Ctext x=%22100%22 y=%22150%22 font-family=%22Arial%22 font-size=%2230%22 text-anchor=%22middle%22 fill=%22%23666%22%3E🎬%3C/text%3E%3C/svg%3E'"
         />
         <h4>${movie.nomi}</h4>
         <p style="color:var(--color-text-secondary);font-size:0.8rem;">
           ${movie.yili} • ${movie.turi === 'film' ? '🎬 Film' : '📺 Serial'}
         </p>
         <div class="movie-actions">
-          <button class="edit-btn" onclick="editMovie('${movie._id}')">
-            ✏️ Tahrirlash
-          </button>
-          <button class="delete-btn" onclick="deleteMovie('${movie._id}')">
-            🗑️ O'chirish
-          </button>
+          <button class="edit-btn" onclick="editMovie('${movie._id}')">✏️</button>
+          <button class="delete-btn" onclick="deleteMovie('${movie._id}')">🗑️</button>
         </div>
       </div>
     `;
@@ -250,14 +249,13 @@ function renderMoviesList(movies) {
 }
 
 // =========================================================
-// TURI O'ZGARGANDA
+// TURI
 // =========================================================
 
 turiSelect.addEventListener('change', function() {
   if (this.value === 'serial') {
     videoField.style.display = 'none';
     serialFields.style.display = 'block';
-    // Video URL majburiy emas
     $('video').removeAttribute('required');
   } else {
     videoField.style.display = 'block';
@@ -271,33 +269,30 @@ turiSelect.addEventListener('change', function() {
 // =========================================================
 
 addQismBtn.addEventListener('click', () => {
-  const qismCount = qismlarContainer.children.length + 1;
-  const qismDiv = document.createElement('div');
-  qismDiv.className = 'qism-item';
-  qismDiv.innerHTML = `
+  const count = qismlarContainer.children.length + 1;
+  const div = document.createElement('div');
+  div.className = 'qism-item';
+  div.innerHTML = `
     <div class="form-group" style="flex:1;margin:0;">
       <label>Qism raqami</label>
-      <input type="number" class="qismRaqami" value="${qismCount}" min="1" />
+      <input type="number" class="qismRaqami" value="${count}" min="1" />
     </div>
     <div class="form-group" style="flex:2;margin:0;">
       <label>Video URL</label>
-      <input type="text" class="qismVideo" placeholder="https://example.com/video.mp4 yoki YouTube embed" />
+      <input type="text" class="qismVideo" placeholder="Video URL" />
     </div>
-    <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="margin-top:18px;">
-      ✕
-    </button>
+    <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="margin-top:18px;">✕</button>
   `;
-  qismlarContainer.appendChild(qismDiv);
+  qismlarContainer.appendChild(div);
 });
 
 // =========================================================
-// FILM SAQLASH (QO'SHISH / YANGILASH)
+// SAQLASH
 // =========================================================
 
 movieForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   
-  // Ma'lumotlarni yig'ish
   const movieData = {
     nomi: $('nomi').value.trim(),
     turi: $('turi').value,
@@ -310,44 +305,23 @@ movieForm.addEventListener('submit', async (e) => {
     rasm: $('rasm').value.trim()
   };
 
-  // Film uchun video
   if (movieData.turi === 'film') {
     movieData.video = $('video').value.trim();
     movieData.qismlar = [];
-  } 
-  // Serial uchun qismlar
-  else {
+  } else {
     movieData.video = '';
-    const qismItems = qismlarContainer.querySelectorAll('.qism-item');
-    movieData.qismlar = Array.from(qismItems).map((item) => {
-      const raqam = item.querySelector('.qismRaqami').value;
-      const video = item.querySelector('.qismVideo').value.trim();
-      return {
-        qismRaqami: parseInt(raqam) || 1,
-        video: video
-      };
-    }).filter(q => q.video); // Faqat video mavjud qismlarni olish
+    const items = qismlarContainer.querySelectorAll('.qism-item');
+    movieData.qismlar = Array.from(items).map((item) => ({
+      qismRaqami: parseInt(item.querySelector('.qismRaqami').value) || 1,
+      video: item.querySelector('.qismVideo').value.trim()
+    })).filter(q => q.video);
   }
 
-  // Validatsiya
-  if (!movieData.nomi) {
-    showMessage('Iltimos, film nomini kiriting', 'error');
-    return;
-  }
-  if (!movieData.rasm) {
-    showMessage('Iltimos, poster rasmi URL ini kiriting', 'error');
-    return;
-  }
-  if (movieData.turi === 'film' && !movieData.video) {
-    showMessage('Iltimos, video URL ini kiriting', 'error');
-    return;
-  }
-  if (movieData.turi === 'serial' && movieData.qismlar.length === 0) {
-    showMessage('Iltimos, hech bo\'lmaganda bitta qism qo\'shing', 'error');
-    return;
-  }
+  if (!movieData.nomi) { showMessage('Film nomini kiriting', 'error'); return; }
+  if (!movieData.rasm) { showMessage('Poster URL kiriting', 'error'); return; }
+  if (movieData.turi === 'film' && !movieData.video) { showMessage('Video URL kiriting', 'error'); return; }
+  if (movieData.turi === 'serial' && movieData.qismlar.length === 0) { showMessage('Hech bo\'lmaganda bitta qism qo\'shing', 'error'); return; }
 
-  // Saqlash
   const isEdit = editMovieId !== null;
   const url = isEdit ? `${API_URL}/movies/${editMovieId}` : `${API_URL}/movies`;
   const method = isEdit ? 'PUT' : 'POST';
@@ -355,21 +329,25 @@ movieForm.addEventListener('submit', async (e) => {
   try {
     showMessage('⏳ Saqlanmoqda...', 'info');
     
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    
     const res = await fetch(url, {
       method: method,
       headers: getAuthHeaders(),
-      body: JSON.stringify(movieData)
+      body: JSON.stringify(movieData),
+      signal: controller.signal
     });
     
+    clearTimeout(timeoutId);
     const data = await res.json();
     
     if (!data.success) {
       throw new Error(data.message || 'Saqlashda xatolik');
     }
     
-    showMessage(isEdit ? '✅ Film muvaffaqiyatli yangilandi!' : '✅ Film muvaffaqiyatli qo\'shildi!', 'success');
+    showMessage(isEdit ? '✅ Yangilandi!' : '✅ Qo\'shildi!', 'success');
     
-    // Formani tozalash
     movieForm.reset();
     editMovieId = null;
     qismlarContainer.innerHTML = `
@@ -380,45 +358,47 @@ movieForm.addEventListener('submit', async (e) => {
         </div>
         <div class="form-group" style="flex:2;margin:0;">
           <label>Video URL</label>
-          <input type="text" class="qismVideo" placeholder="https://example.com/video.mp4 yoki YouTube embed" />
+          <input type="text" class="qismVideo" placeholder="Video URL" />
         </div>
-        <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="margin-top:18px;">
-          ✕
-        </button>
+        <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="margin-top:18px;">✕</button>
       </div>
     `;
     
-    // Ro'yxatni yangilash
     loadMovies();
-    
-    // Tahrirlash rejimidan chiqish
     document.querySelector('#adminPanel h2').textContent = '📽️ Yangi Film/Serial Qo\'shish';
     
   } catch (error) {
-    console.error('Saqlash xatosi:', error);
-    showMessage('❌ ' + error.message, 'error');
+    if (error.name === 'AbortError') {
+      showMessage('⏳ So\'rov uzoq davom etmoqda. Qayta urinib ko\'ring.', 'error');
+    } else {
+      showMessage('❌ ' + error.message, 'error');
+    }
   }
 });
 
 // =========================================================
-// FILMNI TAHRIRLASH
+// TAHRIRLASH
 // =========================================================
 
 async function editMovie(movieId) {
   try {
-    showMessage('⏳ Ma\'lumotlar yuklanmoqda...', 'info');
+    showMessage('⏳ Yuklanmoqda...', 'info');
     
-    const res = await fetch(`${API_URL}/movies/${movieId}`);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
+    const res = await fetch(`${API_URL}/movies/${movieId}`, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    
     const data = await res.json();
     
     if (!data.success) {
-      throw new Error(data.message || 'Film ma\'lumotlarini yuklashda xatolik');
+      throw new Error(data.message || 'Xatolik');
     }
     
     const movie = data.data;
     editMovieId = movieId;
     
-    // Formani to'ldirish
     $('nomi').value = movie.nomi || '';
     $('turi').value = movie.turi || 'film';
     $('janr').value = movie.janr || '';
@@ -429,78 +409,81 @@ async function editMovie(movieId) {
     $('davomiyligi').value = movie.davomiyligi || '';
     $('rasm').value = movie.rasm || '';
     
-    // Turiga qarab maydonlarni ko'rsatish
     turiSelect.dispatchEvent(new Event('change'));
     
     if (movie.turi === 'film') {
       $('video').value = movie.video || '';
-    } else if (movie.turi === 'serial' && movie.qismlar && movie.qismlar.length > 0) {
-      // Qismlarni to'ldirish
+    } else if (movie.turi === 'serial' && movie.qismlar?.length) {
       qismlarContainer.innerHTML = '';
       movie.qismlar.forEach((qism, index) => {
-        const qismDiv = document.createElement('div');
-        qismDiv.className = 'qism-item';
-        qismDiv.innerHTML = `
+        const div = document.createElement('div');
+        div.className = 'qism-item';
+        div.innerHTML = `
           <div class="form-group" style="flex:1;margin:0;">
             <label>Qism raqami</label>
             <input type="number" class="qismRaqami" value="${qism.qismRaqami || index + 1}" min="1" />
           </div>
           <div class="form-group" style="flex:2;margin:0;">
             <label>Video URL</label>
-            <input type="text" class="qismVideo" value="${qism.video || ''}" placeholder="https://example.com/video.mp4" />
+            <input type="text" class="qismVideo" value="${qism.video || ''}" placeholder="Video URL" />
           </div>
-          <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="margin-top:18px;">
-            ✕
-          </button>
+          <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="margin-top:18px;">✕</button>
         `;
-        qismlarContainer.appendChild(qismDiv);
+        qismlarContainer.appendChild(div);
       });
     }
     
-    // Sahifani skroll qilish
     document.querySelector('#adminPanel h2').scrollIntoView({ behavior: 'smooth' });
     document.querySelector('#adminPanel h2').textContent = '✏️ Filmni Tahrirlash';
-    
-    showMessage('✏️ Tahrirlash rejimi. O\'zgarishlarni saqlang.', 'info');
+    showMessage('✏️ Tahrirlash rejimi', 'info');
     
   } catch (error) {
-    console.error('Filmni tahrirlash xatosi:', error);
-    showMessage('❌ ' + error.message, 'error');
+    if (error.name === 'AbortError') {
+      showMessage('⏳ So\'rov uzoq davom etmoqda. Qayta urinib ko\'ring.', 'error');
+    } else {
+      showMessage('❌ ' + error.message, 'error');
+    }
   }
 }
 
 // =========================================================
-// FILMNI O'CHIRISH
+// O'CHIRISH
 // =========================================================
 
 async function deleteMovie(movieId) {
-  if (!confirm('Bu filmni o\'chirishga ishonchingiz komilmi?')) {
-    return;
-  }
+  if (!confirm('Bu filmni o\'chirishga ishonchingiz komilmi?')) return;
   
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
     const res = await fetch(`${API_URL}/movies/${movieId}`, {
       method: 'DELETE',
-      headers: getAuthHeaders()
+      headers: getAuthHeaders(),
+      signal: controller.signal
     });
     
+    clearTimeout(timeoutId);
     const data = await res.json();
     
     if (!data.success) {
       throw new Error(data.message || 'O\'chirishda xatolik');
     }
     
-    showMessage('🗑️ Film muvaffaqiyatli o\'chirildi', 'success');
+    showMessage('🗑️ Film o\'chirildi', 'success');
     loadMovies();
     
   } catch (error) {
-    console.error('Filmni o\'chirish xatosi:', error);
-    showMessage('❌ ' + error.message, 'error');
+    if (error.name === 'AbortError') {
+      showMessage('⏳ So\'rov uzoq davom etmoqda. Qayta urinib ko\'ring.', 'error');
+    } else {
+      showMessage('❌ ' + error.message, 'error');
+    }
   }
 }
 
 // =========================================================
-// XABAR KO'RSATISH
+// XABAR
 // =========================================================
 
 function showMessage(text, type = 'info') {
@@ -517,7 +500,6 @@ function showMessage(text, type = 'info') {
     formMessage.style.background = 'var(--color-surface)';
   }
   
-  // 5 soniyadan keyin xabar yo'qoladi
   clearTimeout(formMessage._timeout);
   formMessage._timeout = setTimeout(() => {
     formMessage.textContent = '';
@@ -525,11 +507,11 @@ function showMessage(text, type = 'info') {
     formMessage.style.color = '';
     formMessage.style.border = '';
     formMessage.style.background = '';
-  }, 5000);
+  }, 4000);
 }
 
 // =========================================================
-// SAHIFA YUKLANGANDA
+// LOAD
 // =========================================================
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -537,7 +519,7 @@ document.addEventListener('DOMContentLoaded', () => {
   checkAuth();
 });
 
-// Console da yordamchi funksiyalar
+// Console uchun
 window.loadMovies = loadMovies;
 window.editMovie = editMovie;
 window.deleteMovie = deleteMovie;
