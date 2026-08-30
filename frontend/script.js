@@ -1,5 +1,5 @@
 // =========================================================
-// MOVIEHUB FRONTEND - TUZATILGAN
+// MOVIEHUB FRONTEND - TO'LIQ TUZATILGAN
 // =========================================================
 
 const API_URL = 'https://movieehubbackend.onrender.com/api';
@@ -23,6 +23,7 @@ const loadingText = $('loadingText');
 let currentMovie = null;
 let isFirstLoad = true;
 let currentAbortController = null;
+let currentVideoPlayer = null;
 
 // =========================================================
 // LOADING
@@ -102,11 +103,44 @@ function getYouTubeEmbedUrl(url) {
 }
 
 // =========================================================
-// FILMLARNI YUKLASH (TUZATILGAN)
+// VIDEO TO'XTATISH (YANGI FUNKSIYA)
+// =========================================================
+
+function stopVideo() {
+  // Oddiy video player
+  if (currentVideoPlayer) {
+    currentVideoPlayer.pause();
+    currentVideoPlayer.currentTime = 0;
+    currentVideoPlayer = null;
+  }
+  
+  // YouTube iframe
+  const iframe = document.querySelector('.modal-video iframe');
+  if (iframe && iframe.src) {
+    // YouTube iframe ni to'xtatish
+    try {
+      iframe.contentWindow.postMessage('{"event":"command","func":"stopVideo","args":""}', '*');
+    } catch(e) {
+      // Agar postMessage ishlamasa, iframe ni qayta yuklash
+      const src = iframe.src;
+      iframe.src = src.replace('autoplay=0', 'autoplay=0');
+    }
+  }
+  
+  // Barcha videolarni to'xtatish
+  document.querySelectorAll('.modal-video video, .modal-video iframe').forEach(el => {
+    if (el.tagName === 'VIDEO') {
+      el.pause();
+      el.currentTime = 0;
+    }
+  });
+}
+
+// =========================================================
+// FILMLARNI YUKLASH
 // =========================================================
 
 async function loadMovies(search = '') {
-  // Avvalgi so'rovni bekor qilish
   if (currentAbortController) {
     currentAbortController.abort();
     currentAbortController = null;
@@ -114,14 +148,12 @@ async function loadMovies(search = '') {
   
   if (!isFirstLoad) showLoading('Filmlar yuklanmoqda...');
   
-  // Yangi AbortController yaratish
   currentAbortController = new AbortController();
   const signal = currentAbortController.signal;
   
   try {
     const url = search ? `${API_URL}/movies/search?q=${encodeURIComponent(search)}` : `${API_URL}/movies`;
     
-    // 10 soniya timeout (uzaytirildi)
     const timeoutId = setTimeout(() => {
       if (currentAbortController) {
         currentAbortController.abort();
@@ -142,11 +174,8 @@ async function loadMovies(search = '') {
   } catch (error) {
     console.error('Yuklash xatosi:', error);
     
-    // AbortError ni alohida ishlov berish
     if (error.name === 'AbortError') {
-      // Agar signal bekor qilingan bo'lsa, lekin bu qayta yuklash bo'lmasa
       if (!isFirstLoad) {
-        // Faqat xabar ko'rsatish, qayta yuklash tugmasini emas
         moviesGrid.innerHTML = `
           <div style="text-align:center;color:var(--color-text-secondary);padding:40px;grid-column:1/-1;">
             ⏳ So'rov bekor qilindi
@@ -156,7 +185,6 @@ async function loadMovies(search = '') {
       return;
     }
     
-    // Boshqa xatolar
     moviesGrid.innerHTML = `
       <div style="text-align:center;color:var(--color-danger);padding:40px;grid-column:1/-1;">
         ❌ Xatolik: ${error.message}
@@ -257,7 +285,7 @@ async function openMovie(id) {
 }
 
 // =========================================================
-// SHOW DETAILS
+// SHOW DETAILS (YANGILANGAN)
 // =========================================================
 
 function showDetails(m) {
@@ -266,6 +294,7 @@ function showDetails(m) {
 
   let videoHtml = '', qismlarHtml = '';
 
+  // ===== VIDEO =====
   if (m.turi === 'film') {
     const videoUrl = fixVideoUrl(m.video);
     if (videoUrl) {
@@ -292,19 +321,10 @@ function showDetails(m) {
         `;
       }
     } else {
-      videoHtml = `<p style="color:var(--color-text-secondary);">🎬 Video mavjud emas</p>`;
+      videoHtml = `<p style="color:var(--color-text-secondary);padding:20px;">🎬 Video mavjud emas</p>`;
     }
   } else if (m.qismlar?.length) {
-    qismlarHtml = `
-      <div class="qismlar-list">
-        ${m.qismlar.map((q, i) => `
-          <button class="qism-btn ${i===0?'active':''}" onclick="playQism(${i})">
-            ${q.qismRaqami}-qism
-          </button>
-        `).join('')}
-      </div>
-    `;
-    
+    // Birinchi qism video
     const firstVideo = fixVideoUrl(m.qismlar[0]?.video);
     if (firstVideo) {
       if (isYouTubeUrl(firstVideo)) {
@@ -330,19 +350,39 @@ function showDetails(m) {
         `;
       }
     } else {
-      videoHtml = `<p style="color:var(--color-text-secondary);">📺 Qism videolari mavjud emas</p>`;
+      videoHtml = `<p style="color:var(--color-text-secondary);padding:20px;">📺 Video mavjud emas</p>`;
     }
+    
+    // ===== QISMLAR =====
+    qismlarHtml = `
+      <div class="qismlar-list">
+        ${m.qismlar.map((q, i) => `
+          <button class="qism-btn ${i===0?'active':''}" onclick="playQism(${i})">
+            ${q.qismRaqami}-qism
+          </button>
+        `).join('')}
+      </div>
+    `;
   }
 
   modalBody.innerHTML = `
     <div class="modal-movie-detail">
-      <img 
-        src="${posterUrl}" 
-        alt="${m.nomi}" 
-        class="modal-poster"
-        onerror="this.onerror=null; this.src='${defaultImg}'"
-      />
+      <div class="modal-poster-container">
+        <img 
+          src="${posterUrl}" 
+          alt="${m.nomi}" 
+          class="modal-poster"
+          onerror="this.onerror=null; this.src='${defaultImg}'"
+        />
+      </div>
       <div class="modal-info">
+        <!-- VIDEO - YUQORIDA -->
+        ${videoHtml}
+        
+        <!-- QISMLAR - O'RTADA (Komp DA rasm ostida, Telefonda video ostida) -->
+        ${qismlarHtml}
+        
+        <!-- MA'LUMOTLAR - PASTDA -->
         <h2>${m.nomi}</h2>
         <div class="movie-meta">
           <span>${m.turi === 'film' ? '🎬 Film' : '📺 Serial'}</span>
@@ -352,48 +392,132 @@ function showDetails(m) {
           <span>⏱ ${m.davomiyligi || 'Noma\'lum'}</span>
         </div>
         <p><strong>Janr:</strong> ${m.janr} | <strong>Til:</strong> ${m.tili || 'Noma\'lum'}</p>
-        ${qismlarHtml}
-        ${videoHtml}
       </div>
     </div>
   `;
   movieModal.classList.add('active');
+  
+  // Video player ni saqlash
+  setTimeout(() => {
+    currentVideoPlayer = document.getElementById('player');
+  }, 100);
 }
 
 // =========================================================
-// PLAY QISM
+// PLAY QISM (TO'LIQ TUZATILGAN)
 // =========================================================
 
 function playQism(index) {
-  const m = currentMovie;
-  if (!m?.qismlar?.[index]) return;
+  console.log('🎬 Qism bosildi:', index);
   
-  document.querySelectorAll('.qism-btn').forEach((b, i) => {
-    b.classList.toggle('active', i === index);
+  if (!currentMovie) {
+    console.error('❌ currentMovie mavjud emas');
+    return;
+  }
+  
+  if (!currentMovie.qismlar || currentMovie.qismlar.length === 0) {
+    console.error('❌ Qismlar mavjud emas');
+    return;
+  }
+  
+  const qism = currentMovie.qismlar[index];
+  if (!qism) {
+    console.error('❌ Qism topilmadi:', index);
+    return;
+  }
+  
+  console.log('📹 Qism ma\'lumoti:', qism);
+  
+  // Qism tugmalarini yangilash
+  document.querySelectorAll('.qism-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', i === index);
   });
 
-  const player = document.getElementById('player');
-  if (player) {
-    const videoUrl = fixVideoUrl(m.qismlar[index].video);
-    if (videoUrl) {
-      if (isYouTubeUrl(videoUrl)) {
-        const embedUrl = getYouTubeEmbedUrl(videoUrl);
-        const parent = player.parentElement;
-        parent.innerHTML = `
-          <iframe 
-            src="${embedUrl}" 
-            style="width:100%;height:450px;border-radius:10px;border:none;"
-            allowfullscreen
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            loading="lazy"
-            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-          ></iframe>
-        `;
-      } else {
-        player.src = videoUrl;
-        player.load();
-        player.play().catch(() => {});
-      }
+  // Video URL ni olish
+  const videoUrl = fixVideoUrl(qism.video);
+  console.log('🔗 Video URL:', videoUrl);
+  
+  if (!videoUrl) {
+    const videoContainer = document.querySelector('.modal-video');
+    if (videoContainer) {
+      videoContainer.innerHTML = `<p style="color:var(--color-text-secondary);padding:20px;">📺 Video URL mavjud emas</p>`;
+    }
+    return;
+  }
+  
+  // Video konteynerni topish
+  let videoContainer = document.querySelector('.modal-video');
+  
+  // Agar video konteyner bo'lmasa, yangi yaratish
+  if (!videoContainer) {
+    const modalInfo = document.querySelector('.modal-info');
+    if (modalInfo) {
+      const newVideoContainer = document.createElement('div');
+      newVideoContainer.className = 'modal-video';
+      modalInfo.insertBefore(newVideoContainer, modalInfo.firstChild);
+      videoContainer = newVideoContainer;
+    }
+  }
+  
+  if (!videoContainer) {
+    console.error('❌ Video konteyner topilmadi');
+    return;
+  }
+  
+  // Videoni yangilash
+  if (isYouTubeUrl(videoUrl)) {
+    const embedUrl = getYouTubeEmbedUrl(videoUrl);
+    videoContainer.innerHTML = `
+      <iframe 
+        src="${embedUrl}" 
+        style="width:100%;height:450px;border-radius:10px;border:none;"
+        allowfullscreen
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        loading="lazy"
+        sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+      ></iframe>
+    `;
+  } else {
+    videoContainer.innerHTML = `
+      <video controls width="100%" id="player" preload="metadata">
+        <source src="${videoUrl}" type="video/mp4" />
+      </video>
+    `;
+  }
+  
+  // Yangi video player ni saqlash
+  setTimeout(() => {
+    currentVideoPlayer = document.getElementById('player');
+    if (currentVideoPlayer) {
+      currentVideoPlayer.play().catch(() => {});
+    }
+  }, 100);
+}
+
+// =========================================================
+// MODAL YOPISH (VIDEO TO'XTATILADI)
+// =========================================================
+
+function closeModal() {
+  // Videoni to'xtatish
+  stopVideo();
+  
+  // Modallarni yopish
+  movieModal.classList.remove('active');
+  ageModal.classList.remove('active');
+  
+  // Video konteynerni tozalash
+  const videoContainer = document.querySelector('.modal-video');
+  if (videoContainer) {
+    // Videoni butunlay o'chirish (YouTube uchun)
+    const iframe = videoContainer.querySelector('iframe');
+    if (iframe) {
+      iframe.src = '';
+    }
+    const video = videoContainer.querySelector('video');
+    if (video) {
+      video.removeAttribute('src');
+      video.load();
     }
   }
 }
@@ -408,21 +532,16 @@ ageYes.addEventListener('click', () => {
 });
 
 ageNo.addEventListener('click', () => { 
-  ageModal.classList.remove('active'); 
-  movieModal.classList.remove('active'); 
+  closeModal();
 });
 
 modalClose.addEventListener('click', () => {
-  movieModal.classList.remove('active');
-  const p = document.getElementById('player');
-  if (p) p.pause();
+  closeModal();
 });
 
 movieModal.addEventListener('click', (e) => {
   if (e.target === movieModal) {
-    movieModal.classList.remove('active');
-    const p = document.getElementById('player');
-    if (p) p.pause();
+    closeModal();
   }
 });
 
@@ -457,6 +576,8 @@ document.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => loadMovies(), 100);
 });
 
-// Global funksiyalarni ochiq qilish (qayta yuklash tugmasi uchun)
+// Global funksiyalar
 window.loadMovies = loadMovies;
 window.openMovie = openMovie;
+window.playQism = playQism;
+window.closeModal = closeModal;
