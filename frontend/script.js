@@ -77,7 +77,7 @@ function fixVideoUrl(url) {
 }
 
 // =========================================================
-// YOUTUBE
+// YOUTUBE (TUZATILGAN)
 // =========================================================
 
 function isYouTubeUrl(url) {
@@ -97,13 +97,14 @@ function getYouTubeEmbedUrl(url) {
   }
   
   if (videoId) {
+    // Toza pleyer - qo'shimcha elementlarsiz
     return `https://www.youtube.com/embed/${videoId}?autoplay=0&rel=0&modestbranding=1&showinfo=0&iv_load_policy=3&controls=1&color=white&disablekb=1&fs=1&hl=uz`;
   }
   return url;
 }
 
 // =========================================================
-// VIDEO TO'XTATISH (YANGI FUNKSIYA)
+// VIDEO TO'XTATISH
 // =========================================================
 
 function stopVideo() {
@@ -115,24 +116,19 @@ function stopVideo() {
   }
   
   // YouTube iframe
-  const iframe = document.querySelector('.modal-video iframe');
-  if (iframe && iframe.src) {
-    // YouTube iframe ni to'xtatish
-    try {
-      iframe.contentWindow.postMessage('{"event":"command","func":"stopVideo","args":""}', '*');
-    } catch(e) {
-      // Agar postMessage ishlamasa, iframe ni qayta yuklash
-      const src = iframe.src;
-      iframe.src = src.replace('autoplay=0', 'autoplay=0');
+  document.querySelectorAll('.modal-video iframe').forEach(iframe => {
+    if (iframe && iframe.src) {
+      try {
+        // YouTube ni to'xtatish
+        iframe.src = iframe.src.replace('autoplay=0', 'autoplay=0');
+      } catch(e) {}
     }
-  }
+  });
   
   // Barcha videolarni to'xtatish
-  document.querySelectorAll('.modal-video video, .modal-video iframe').forEach(el => {
-    if (el.tagName === 'VIDEO') {
-      el.pause();
-      el.currentTime = 0;
-    }
+  document.querySelectorAll('.modal-video video').forEach(el => {
+    el.pause();
+    el.currentTime = 0;
   });
 }
 
@@ -285,7 +281,7 @@ async function openMovie(id) {
 }
 
 // =========================================================
-// SHOW DETAILS (YANGILANGAN)
+// SHOW DETAILS (YANGI - QISMLAR RASM OSTIDA)
 // =========================================================
 
 function showDetails(m) {
@@ -353,7 +349,7 @@ function showDetails(m) {
       videoHtml = `<p style="color:var(--color-text-secondary);padding:20px;">📺 Video mavjud emas</p>`;
     }
     
-    // ===== QISMLAR =====
+    // ===== QISMLAR (RASM OSTIDA - CHAP TOMON) =====
     qismlarHtml = `
       <div class="qismlar-list">
         ${m.qismlar.map((q, i) => `
@@ -367,20 +363,24 @@ function showDetails(m) {
 
   modalBody.innerHTML = `
     <div class="modal-movie-detail">
-      <div class="modal-poster-container">
-        <img 
-          src="${posterUrl}" 
-          alt="${m.nomi}" 
-          class="modal-poster"
-          onerror="this.onerror=null; this.src='${defaultImg}'"
-        />
+      <!-- CHAP TOMON - RASM + QISMLAR -->
+      <div class="modal-left">
+        <div class="modal-poster-container">
+          <img 
+            src="${posterUrl}" 
+            alt="${m.nomi}" 
+            class="modal-poster"
+            onerror="this.onerror=null; this.src='${defaultImg}'"
+          />
+        </div>
+        <!-- QISMLAR - RASM OSTIDA -->
+        ${qismlarHtml}
       </div>
-      <div class="modal-info">
+      
+      <!-- O'NG TOMON - VIDEO + MA'LUMOTLAR -->
+      <div class="modal-right">
         <!-- VIDEO - YUQORIDA -->
         ${videoHtml}
-        
-        <!-- QISMLAR - O'RTADA (Komp DA rasm ostida, Telefonda video ostida) -->
-        ${qismlarHtml}
         
         <!-- MA'LUMOTLAR - PASTDA -->
         <h2>${m.nomi}</h2>
@@ -404,7 +404,7 @@ function showDetails(m) {
 }
 
 // =========================================================
-// PLAY QISM (TO'LIQ TUZATILGAN)
+// PLAY QISM (TO'LIQ)
 // =========================================================
 
 function playQism(index) {
@@ -438,7 +438,7 @@ function playQism(index) {
   console.log('🔗 Video URL:', videoUrl);
   
   if (!videoUrl) {
-    const videoContainer = document.querySelector('.modal-video');
+    const videoContainer = document.querySelector('.modal-right .modal-video');
     if (videoContainer) {
       videoContainer.innerHTML = `<p style="color:var(--color-text-secondary);padding:20px;">📺 Video URL mavjud emas</p>`;
     }
@@ -446,15 +446,15 @@ function playQism(index) {
   }
   
   // Video konteynerni topish
-  let videoContainer = document.querySelector('.modal-video');
+  let videoContainer = document.querySelector('.modal-right .modal-video');
   
   // Agar video konteyner bo'lmasa, yangi yaratish
   if (!videoContainer) {
-    const modalInfo = document.querySelector('.modal-info');
-    if (modalInfo) {
+    const modalRight = document.querySelector('.modal-right');
+    if (modalRight) {
       const newVideoContainer = document.createElement('div');
       newVideoContainer.className = 'modal-video';
-      modalInfo.insertBefore(newVideoContainer, modalInfo.firstChild);
+      modalRight.insertBefore(newVideoContainer, modalRight.firstChild);
       videoContainer = newVideoContainer;
     }
   }
@@ -495,7 +495,7 @@ function playQism(index) {
 }
 
 // =========================================================
-// MODAL YOPISH (VIDEO TO'XTATILADI)
+// MODAL YOPISH
 // =========================================================
 
 function closeModal() {
@@ -505,21 +505,6 @@ function closeModal() {
   // Modallarni yopish
   movieModal.classList.remove('active');
   ageModal.classList.remove('active');
-  
-  // Video konteynerni tozalash
-  const videoContainer = document.querySelector('.modal-video');
-  if (videoContainer) {
-    // Videoni butunlay o'chirish (YouTube uchun)
-    const iframe = videoContainer.querySelector('iframe');
-    if (iframe) {
-      iframe.src = '';
-    }
-    const video = videoContainer.querySelector('video');
-    if (video) {
-      video.removeAttribute('src');
-      video.load();
-    }
-  }
 }
 
 // =========================================================
