@@ -539,19 +539,47 @@ img {
   color: var(--color-text-secondary);
 }
 
-.modal-video iframe {
+/* VIDEO - YouTube va oddiy video */
+.modal-video {
+  position: relative;
   width: 100%;
-  height: 450px;
+  padding-bottom: 56.25%; /* 16:9 aspect ratio */
+  height: 0;
+  overflow: hidden;
   border-radius: var(--radius-md);
   background: #000;
+  margin-top: 16px;
+}
+
+.modal-video iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   border: none;
 }
 
 .modal-video video {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
+  height: 100%;
   border-radius: var(--radius-md);
   background: #000;
-  margin-top: 16px;
+}
+
+/* YouTube pleyerdagi keraksiz elementlarni yashirish */
+.modal-video iframe::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+  pointer-events: none;
 }
 
 .qismlar-list {
@@ -902,8 +930,8 @@ hr {
     padding: 18px;
   }
 
-  .modal-video iframe {
-    height: 250px;
+  .modal-video {
+    padding-bottom: 56.25%;
   }
 
   .age-buttons {
@@ -948,7 +976,7 @@ hr {
     margin: 20px 10px;
   }
 
-  .modal-video iframe {
-    height: 180px;
+  .modal-video {
+    padding-bottom: 56.25%;
   }
 }
