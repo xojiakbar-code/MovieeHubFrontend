@@ -107,23 +107,36 @@ function getYouTubeEmbedUrl(url) {
 // =========================================================
 
 function stopVideo() {
+  // 1. Oddiy video player
   if (currentVideoPlayer) {
-    currentVideoPlayer.pause();
-    currentVideoPlayer.currentTime = 0;
+    try {
+      currentVideoPlayer.pause();
+      currentVideoPlayer.currentTime = 0;
+    } catch(e) {}
     currentVideoPlayer = null;
   }
   
+  // 2. Barcha videolarni to'xtatish
+  document.querySelectorAll('.modal-video video').forEach(el => {
+    try {
+      el.pause();
+      el.currentTime = 0;
+    } catch(e) {}
+  });
+  
+  // 3. YouTube iframe - src ni tozalash
   document.querySelectorAll('.modal-video iframe').forEach(iframe => {
     if (iframe && iframe.src) {
       try {
-        iframe.src = iframe.src.replace('autoplay=0', 'autoplay=0');
+        const currentSrc = iframe.src;
+        if (currentSrc.includes('youtube.com')) {
+          iframe.src = 'about:blank';
+          setTimeout(() => {
+            iframe.src = currentSrc.replace('autoplay=0', 'autoplay=0');
+          }, 100);
+        }
       } catch(e) {}
     }
-  });
-  
-  document.querySelectorAll('.modal-video video').forEach(el => {
-    el.pause();
-    el.currentTime = 0;
   });
 }
 
@@ -412,6 +425,10 @@ function playQism(index) {
     return;
   }
   
+  // Avvalgi videoni to'xtatish
+  stopVideo();
+  
+  // Qism tugmalarini yangilash
   document.querySelectorAll('.qism-btn').forEach((btn, i) => {
     btn.classList.toggle('active', i === index);
   });
@@ -442,6 +459,9 @@ function playQism(index) {
     console.error('❌ Video konteyner topilmadi');
     return;
   }
+  
+  // Videoni tozalab, yangilash
+  videoContainer.innerHTML = '';
   
   if (isYouTubeUrl(videoUrl)) {
     const embedUrl = getYouTubeEmbedUrl(videoUrl);
@@ -475,9 +495,31 @@ function playQism(index) {
 // =========================================================
 
 function closeModal() {
+  // 1. Videoni to'xtatish
   stopVideo();
+  
+  // 2. Video konteynerni tozalash
+  const videoContainer = document.querySelector('.modal-video');
+  if (videoContainer) {
+    const iframe = videoContainer.querySelector('iframe');
+    if (iframe) {
+      iframe.src = 'about:blank';
+    }
+    const video = videoContainer.querySelector('video');
+    if (video) {
+      video.pause();
+      video.currentTime = 0;
+      video.removeAttribute('src');
+      video.load();
+    }
+  }
+  
+  // 3. Modallarni yopish
   movieModal.classList.remove('active');
   ageModal.classList.remove('active');
+  
+  // 4. Scrolni qayta tiklash
+  document.body.style.overflow = '';
 }
 
 // =========================================================
@@ -534,6 +576,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => loadMovies(), 100);
 });
 
+// Global funksiyalar
 window.loadMovies = loadMovies;
 window.openMovie = openMovie;
 window.playQism = playQism;
