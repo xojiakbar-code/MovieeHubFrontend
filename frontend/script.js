@@ -1,5 +1,5 @@
 // =========================================================
-// MOVIEHUB FRONTEND - TO'LIQ VERSIYA
+// MOVIEHUB FRONTEND - TUZATILGAN
 // =========================================================
 
 const API_URL = 'https://movieehubbackend.onrender.com/api';
@@ -22,6 +22,7 @@ const loadingText = $('loadingText');
 
 let currentMovie = null;
 let isFirstLoad = true;
+let currentAbortController = null;
 
 // =========================================================
 // LOADING
@@ -41,17 +42,18 @@ function hideLoading() {
 // =========================================================
 
 function getDefaultImage() {
-  return 'data:image/svg+xml,' + encodeURIComponent(`
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`
     <svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400">
       <rect width="300" height="400" fill="#1a1a1a"/>
-      <text x="150" y="180" font-family="Arial" font-size="24" fill="#444" text-anchor="middle">🎬</text>
-      <text x="150" y="220" font-family="Arial" font-size="16" fill="#666" text-anchor="middle">No Image</text>
+      <circle cx="150" cy="150" r="60" fill="#2a2a2a"/>
+      <text x="150" y="165" font-family="Arial" font-size="40" text-anchor="middle" fill="#444">🎬</text>
+      <text x="150" y="220" font-family="Arial" font-size="14" fill="#555" text-anchor="middle">No Image</text>
     </svg>
   `);
 }
 
 // =========================================================
-// URL FIX FUNKSIYALARI
+// URL FIX
 // =========================================================
 
 function fixImageUrl(url) {
@@ -59,7 +61,10 @@ function fixImageUrl(url) {
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
   if (url.startsWith('/uploads/')) return BASE_URL + url;
   if (url.startsWith('uploads/')) return BASE_URL + '/' + url;
-  return BASE_URL + '/uploads/' + url;
+  if (url.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)) {
+    return BASE_URL + '/uploads/' + url;
+  }
+  return getDefaultImage();
 }
 
 function fixVideoUrl(url) {
@@ -71,7 +76,7 @@ function fixVideoUrl(url) {
 }
 
 // =========================================================
-// YOUTUBE FUNKSIYALARI
+// YOUTUBE
 // =========================================================
 
 function isYouTubeUrl(url) {
@@ -91,26 +96,39 @@ function getYouTubeEmbedUrl(url) {
   }
   
   if (videoId) {
-    // Toza pleyer - hech qanday qo'shimcha elementlar ko'rinmaydi
     return `https://www.youtube.com/embed/${videoId}?autoplay=0&rel=0&modestbranding=1&showinfo=0&iv_load_policy=3&controls=1&color=white&disablekb=1&fs=1&hl=uz`;
   }
   return url;
 }
 
 // =========================================================
-// FILMLARNI YUKLASH
+// FILMLARNI YUKLASH (TUZATILGAN)
 // =========================================================
 
 async function loadMovies(search = '') {
+  // Avvalgi so'rovni bekor qilish
+  if (currentAbortController) {
+    currentAbortController.abort();
+    currentAbortController = null;
+  }
+  
   if (!isFirstLoad) showLoading('Filmlar yuklanmoqda...');
+  
+  // Yangi AbortController yaratish
+  currentAbortController = new AbortController();
+  const signal = currentAbortController.signal;
   
   try {
     const url = search ? `${API_URL}/movies/search?q=${encodeURIComponent(search)}` : `${API_URL}/movies`;
     
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    // 10 soniya timeout (uzaytirildi)
+    const timeoutId = setTimeout(() => {
+      if (currentAbortController) {
+        currentAbortController.abort();
+      }
+    }, 10000);
     
-    const res = await fetch(url, { signal: controller.signal });
+    const res = await fetch(url, { signal });
     clearTimeout(timeoutId);
     
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -123,26 +141,35 @@ async function loadMovies(search = '') {
     
   } catch (error) {
     console.error('Yuklash xatosi:', error);
+    
+    // AbortError ni alohida ishlov berish
     if (error.name === 'AbortError') {
-      moviesGrid.innerHTML = `
-        <div style="text-align:center;color:var(--color-danger);padding:40px;grid-column:1/-1;">
-          ⏳ So'rov uzoq davom etmoqda
-          <br />
-          <button onclick="loadMovies()" class="btn btn-primary" style="margin-top:10px;">Qayta urinish</button>
-        </div>
-      `;
-    } else {
-      moviesGrid.innerHTML = `
-        <div style="text-align:center;color:var(--color-danger);padding:40px;grid-column:1/-1;">
-          ❌ Xatolik: ${error.message}
-          <br />
-          <button onclick="loadMovies()" class="btn btn-primary" style="margin-top:10px;">Qayta urinish</button>
-        </div>
-      `;
+      // Agar signal bekor qilingan bo'lsa, lekin bu qayta yuklash bo'lmasa
+      if (!isFirstLoad) {
+        // Faqat xabar ko'rsatish, qayta yuklash tugmasini emas
+        moviesGrid.innerHTML = `
+          <div style="text-align:center;color:var(--color-text-secondary);padding:40px;grid-column:1/-1;">
+            ⏳ So'rov bekor qilindi
+          </div>
+        `;
+      }
+      return;
     }
+    
+    // Boshqa xatolar
+    moviesGrid.innerHTML = `
+      <div style="text-align:center;color:var(--color-danger);padding:40px;grid-column:1/-1;">
+        ❌ Xatolik: ${error.message}
+        <br />
+        <button onclick="loadMovies()" class="btn btn-primary" style="margin-top:10px;padding:8px 20px;border:none;border-radius:8px;background:var(--color-accent);color:#fff;cursor:pointer;">
+          🔄 Qayta yuklash
+        </button>
+      </div>
+    `;
   }
   
   hideLoading();
+  currentAbortController = null;
 }
 
 // =========================================================
@@ -154,6 +181,10 @@ function renderMovies(movies) {
     moviesGrid.innerHTML = `
       <div style="text-align:center;color:var(--color-text-secondary);padding:40px;grid-column:1/-1;">
         🎬 Filmlar topilmadi
+        <br />
+        <button onclick="loadMovies()" class="btn btn-primary" style="margin-top:10px;padding:8px 20px;border:none;border-radius:8px;background:var(--color-accent);color:#fff;cursor:pointer;">
+          🔄 Qayta yuklash
+        </button>
       </div>
     `;
     return;
@@ -162,7 +193,8 @@ function renderMovies(movies) {
   const defaultImg = getDefaultImage();
 
   moviesGrid.innerHTML = movies.map(m => {
-    const imgUrl = fixImageUrl(m.rasm);
+    let imgUrl = fixImageUrl(m.rasm);
+    
     return `
       <div class="movie-card" onclick="openMovie('${m._id}')">
         <img 
@@ -170,7 +202,7 @@ function renderMovies(movies) {
           alt="${m.nomi}" 
           class="movie-poster"
           loading="lazy"
-          onerror="this.src='${defaultImg}'"
+          onerror="this.onerror=null; this.src='${defaultImg}'"
         />
         <div class="movie-info">
           <div class="movie-title">${m.nomi}</div>
@@ -194,7 +226,7 @@ async function openMovie(id) {
   
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     
     const res = await fetch(`${API_URL}/movies/${id}`, { signal: controller.signal });
     clearTimeout(timeoutId);
@@ -230,7 +262,7 @@ async function openMovie(id) {
 
 function showDetails(m) {
   const defaultImg = getDefaultImage();
-  const posterUrl = fixImageUrl(m.rasm);
+  let posterUrl = fixImageUrl(m.rasm);
 
   let videoHtml = '', qismlarHtml = '';
 
@@ -308,7 +340,7 @@ function showDetails(m) {
         src="${posterUrl}" 
         alt="${m.nomi}" 
         class="modal-poster"
-        onerror="this.src='${defaultImg}'"
+        onerror="this.onerror=null; this.src='${defaultImg}'"
       />
       <div class="modal-info">
         <h2>${m.nomi}</h2>
@@ -424,3 +456,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   setTimeout(() => loadMovies(), 100);
 });
+
+// Global funksiyalarni ochiq qilish (qayta yuklash tugmasi uchun)
+window.loadMovies = loadMovies;
+window.openMovie = openMovie;
