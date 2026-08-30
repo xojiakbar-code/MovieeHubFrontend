@@ -980,3 +980,133 @@ hr {
     padding-bottom: 56.25%;
   }
 }
+
+
+/* =========================================================
+   MODAL TARTIBI - Komp va Telefon uchun
+   ========================================================= */
+
+.modal-movie-detail {
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  gap: 28px;
+}
+
+.modal-poster-container {
+  position: sticky;
+  top: 20px;
+  align-self: flex-start;
+}
+
+.modal-poster {
+  width: 100%;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  background: var(--color-surface);
+}
+
+/* ===== KOMPYUTER VERSIYA ===== */
+@media (min-width: 769px) {
+  .modal-info {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Video - yuqorida */
+  .modal-video {
+    order: -1;
+    margin-bottom: 16px;
+  }
+  
+  /* Qismlar - video ostida, lekin rasm ostida emas */
+  .qismlar-list {
+    order: 0;
+    margin: 8px 0 16px 0;
+  }
+  
+  /* Ma'lumotlar - pastda */
+  .modal-info h2,
+  .modal-info .movie-meta,
+  .modal-info p {
+    order: 1;
+  }
+}
+
+/* ===== TELEFON VERSIYA ===== */
+@media (max-width: 768px) {
+  .modal-movie-detail {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .modal-poster-container {
+    position: static;
+  }
+  
+  .modal-info {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Video - yuqorida */
+  .modal-video {
+    order: -1;
+    margin-bottom: 12px;
+  }
+  
+  /* Qismlar - video ostida (telefonda) */
+  .qismlar-list {
+    order: 0;
+    margin: 8px 0 12px 0;
+  }
+  
+  /* Ma'lumotlar - pastda */
+  .modal-info h2,
+  .modal-info .movie-meta,
+  .modal-info p {
+    order: 1;
+  }
+  
+  .modal-video iframe {
+    height: 250px;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-video iframe {
+    height: 180px;
+  }
+}
+
+/* =========================================================
+   QISMLAR TUGMALARI
+   ========================================================= */
+.qismlar-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 16px 0;
+}
+
+.qism-btn {
+  padding: 7px 16px;
+  background: var(--color-surface-raised);
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all var(--duration) var(--ease);
+}
+
+.qism-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.qism-btn.active {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+}
