@@ -1,5 +1,5 @@
 // =========================================================
-// MOVIEHUB ADMIN PANEL - TO'LIQ
+// MOVIEHUB ADMIN PANEL - YANGILANGAN
 // =========================================================
 
 const API_URL = 'https://movieehubbackend.onrender.com/api';
@@ -15,6 +15,11 @@ const loginError = $('loginError');
 const usernameInput = $('username');
 const passwordInput = $('password');
 
+const settingsForm = $('settingsForm');
+const settingsMessage = $('settingsMessage');
+const adminUsernameDisplay = $('adminUsernameDisplay');
+const adminIdDisplay = $('adminIdDisplay');
+
 const movieForm = $('movieForm');
 const formMessage = $('formMessage');
 const moviesList = $('moviesList');
@@ -26,6 +31,8 @@ const qismlarContainer = $('qismlarContainer');
 const addQismBtn = $('addQismBtn');
 
 let editMovieId = null;
+let tokenCheckInterval = null;
+let isLoggingOut = false;
 
 // =========================================================
 // AUTH
@@ -43,20 +50,31 @@ function checkAuth() {
 async function verifyToken() {
   try {
     const token = localStorage.getItem('adminToken');
-    const res = await fetch(`${API_URL}/movies`, {
+    const res = await fetch(`${API_URL}/admin/me`, {
       headers: { 'Authorization': `Bearer ${token}` },
-      signal: AbortSignal.timeout(3000)
+      signal: AbortSignal.timeout(5000)
     });
     
     if (res.ok) {
-      showAdminPanel();
+      const data = await res.json();
+      if (data.success) {
+        showAdminPanel(data.data);
+        // Token tekshiruvini boshlash (har 30 soniyada)
+        startTokenCheck();
+      } else {
+        handleLogout();
+      }
     } else {
-      localStorage.removeItem('adminToken');
-      localStorage.removeItem('adminUsername');
-      showLoginForm();
+      // 401 - token yaroqsiz (forceLogout bo'lishi mumkin)
+      const data = await res.json();
+      if (data.forceLogout) {
+        showForceLogoutMessage(data.message);
+      }
+      handleLogout();
     }
-  } catch {
-    showLoginForm();
+  } catch (error) {
+    console.error('Token tekshirish xatosi:', error);
+    handleLogout();
   }
 }
 
@@ -65,17 +83,89 @@ function showLoginForm() {
   adminPanel.style.display = 'none';
   logoutBtn.style.display = 'none';
   loginError.textContent = '';
+  stopTokenCheck();
 }
 
-function showAdminPanel() {
+function showAdminPanel(adminData) {
   loginForm.style.display = 'none';
   adminPanel.style.display = 'block';
   logoutBtn.style.display = 'flex';
+  
+  if (adminData) {
+    adminUsernameDisplay.textContent = adminData.username || 'admin';
+    adminIdDisplay.textContent = adminData._id || '---';
+    $('newUsername').placeholder = adminData.username || 'admin';
+  }
+  
   loadMovies();
 }
 
+function handleLogout() {
+  localStorage.removeItem('adminToken');
+  localStorage.removeItem('adminUsername');
+  showLoginForm();
+}
+
+function showForceLogoutMessage(message) {
+  loginError.textContent = message || 'Sizning ma\'lumotlaringiz boshqa qurilmada o\'zgartirilgan. Iltimos, qayta kiring.';
+  loginError.style.color = 'var(--color-danger)';
+  loginError.style.background = 'rgba(255, 59, 48, 0.1)';
+  loginError.style.padding = '12px';
+  loginError.style.borderRadius = 'var(--radius-sm)';
+  loginError.style.border = '0.5px solid var(--color-danger)';
+  
+  setTimeout(() => {
+    loginError.style.color = '';
+    loginError.style.background = '';
+    loginError.style.padding = '';
+    loginError.style.borderRadius = '';
+    loginError.style.border = '';
+  }, 5000);
+}
+
 // =========================================================
-// LOGIN (TEZKOR)
+// TOKEN TEKSHIRUV (Real-time)
+// =========================================================
+
+function startTokenCheck() {
+  stopTokenCheck();
+  tokenCheckInterval = setInterval(async () => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      if (!token) {
+        stopTokenCheck();
+        return;
+      }
+      
+      const res = await fetch(`${API_URL}/admin/me`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+        signal: AbortSignal.timeout(3000)
+      });
+      
+      if (!res.ok) {
+        const data = await res.json();
+        if (data.forceLogout) {
+          alert('⚠️ ' + data.message);
+        }
+        handleLogout();
+        stopTokenCheck();
+      }
+    } catch (error) {
+      console.log('Token check xatosi:', error.message);
+      // Internet uzilgan bo'lishi mumkin, logout qilmaymiz
+    }
+  }, 30000); // Har 30 soniyada tekshiradi
+}
+
+function stopTokenCheck() {
+  if (tokenCheckInterval) {
+    clearInterval(tokenCheckInterval);
+    tokenCheckInterval = null;
+  }
+}
+
+// =========================================================
+// LOGIN
 // =========================================================
 
 loginFormElement.addEventListener('submit', async (e) => {
@@ -117,7 +207,7 @@ loginFormElement.addEventListener('submit', async (e) => {
     localStorage.setItem('adminToken', data.token);
     localStorage.setItem('adminUsername', data.admin.username);
     
-    showAdminPanel();
+    await verifyToken();
     loginFormElement.reset();
     loginError.textContent = '';
     
@@ -138,10 +228,124 @@ loginFormElement.addEventListener('submit', async (e) => {
 // =========================================================
 
 logoutBtn.addEventListener('click', () => {
-  localStorage.removeItem('adminToken');
-  localStorage.removeItem('adminUsername');
-  showLoginForm();
+  if (confirm('Tizimdan chiqmoqchimisiz?')) {
+    handleLogout();
+  }
 });
+
+// =========================================================
+// SETTINGS - USERNAME VA PAROLNI O'ZGARTIRISH
+// =========================================================
+
+settingsForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  
+  const newUsername = $('newUsername').value.trim();
+  const currentPassword = $('currentPassword').value.trim();
+  const newPassword = $('newPassword').value.trim();
+  const confirmNewPassword = $('confirmNewPassword').value.trim();
+  
+  // Validatsiya
+  if (!currentPassword) {
+    showSettingsMessage('Joriy parolni kiriting', 'error');
+    return;
+  }
+  
+  if (newPassword && newPassword !== confirmNewPassword) {
+    showSettingsMessage('Yangi parollar mos kelmadi', 'error');
+    return;
+  }
+  
+  if (newPassword && newPassword.length < 6) {
+    showSettingsMessage('Yangi parol kamida 6 ta belgidan iborat bo\'lishi kerak', 'error');
+    return;
+  }
+  
+  // Agar hech narsa o'zgarmasa
+  if (!newUsername && !newPassword) {
+    showSettingsMessage('Hech qanday o\'zgarish kiritilmadi', 'info');
+    return;
+  }
+  
+  const btn = settingsForm.querySelector('button[type="submit"]');
+  const originalText = btn.textContent;
+  btn.textContent = '⏳ Saqlanmoqda...';
+  btn.disabled = true;
+  
+  try {
+    const token = localStorage.getItem('adminToken');
+    const res = await fetch(`${API_URL}/admin/update`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        username: newUsername || undefined,
+        currentPassword,
+        newPassword: newPassword || undefined
+      })
+    });
+    
+    const data = await res.json();
+    
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || 'Yangilashda xatolik');
+    }
+    
+    // Yangi tokenni saqlash
+    if (data.token) {
+      localStorage.setItem('adminToken', data.token);
+      localStorage.setItem('adminUsername', data.admin.username);
+    }
+    
+    showSettingsMessage('✅ Ma\'lumotlar muvaffaqiyatli yangilandi!', 'success');
+    
+    // Formani tozalash
+    settingsForm.reset();
+    $('newUsername').placeholder = data.admin.username;
+    adminUsernameDisplay.textContent = data.admin.username;
+    
+    // Agar username o'zgargan bo'lsa, boshqa qurilmalardagi foydalanuvchilar avtomatik chiqariladi
+    if (newUsername && newUsername !== data.admin.username) {
+      showSettingsMessage('⚠️ Username o\'zgartirildi. Boshqa qurilmalardagi foydalanuvchilar avtomatik tizimdan chiqariladi.', 'info');
+    }
+    
+  } catch (error) {
+    showSettingsMessage('❌ ' + error.message, 'error');
+  } finally {
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
+});
+
+function showSettingsMessage(text, type = 'info') {
+  settingsMessage.textContent = text;
+  settingsMessage.className = 'settings-message';
+  
+  if (type === 'success') {
+    settingsMessage.classList.add('success-message');
+  } else if (type === 'error') {
+    settingsMessage.classList.add('error-message');
+  } else if (type === 'info') {
+    settingsMessage.style.color = 'var(--color-text-secondary)';
+    settingsMessage.style.background = 'var(--color-surface-raised)';
+    settingsMessage.style.padding = '10px';
+    settingsMessage.style.borderRadius = 'var(--radius-sm)';
+    settingsMessage.style.border = '0.5px solid var(--color-border)';
+  }
+  
+  clearTimeout(settingsMessage._timeout);
+  settingsMessage._timeout = setTimeout(() => {
+    settingsMessage.textContent = '';
+    settingsMessage.className = 'settings-message';
+    settingsMessage.style.color = '';
+    settingsMessage.style.background = '';
+    settingsMessage.style.padding = '';
+    settingsMessage.style.borderRadius = '';
+    settingsMessage.style.border = '';
+  }, 5000);
+}
 
 // =========================================================
 // API HEADERS
@@ -156,7 +360,7 @@ function getAuthHeaders() {
 }
 
 // =========================================================
-// FILMLARNI YUKLASH (TEZKOR)
+// FILMLARNI YUKLASH
 // =========================================================
 
 async function loadMovies() {
