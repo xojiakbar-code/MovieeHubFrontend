@@ -1,5 +1,5 @@
 // =========================================================
-// MOVIEHUB FRONTEND - TO'LIQ TUZATILGAN
+// MOVIEHUB FRONTEND - TO'LIQ (LIKE/DISLIKE BILAN)
 // =========================================================
 
 const API_URL = 'https://movieehubbackend.onrender.com/api';
@@ -24,6 +24,7 @@ let currentMovie = null;
 let isFirstLoad = true;
 let currentAbortController = null;
 let currentVideoPlayer = null;
+let currentMovieId = null;
 
 // =========================================================
 // LOADING
@@ -107,7 +108,6 @@ function getYouTubeEmbedUrl(url) {
 // =========================================================
 
 function stopVideo() {
-  // 1. Oddiy video player
   if (currentVideoPlayer) {
     try {
       currentVideoPlayer.pause();
@@ -116,7 +116,6 @@ function stopVideo() {
     currentVideoPlayer = null;
   }
   
-  // 2. Barcha videolarni to'xtatish
   document.querySelectorAll('.modal-video video').forEach(el => {
     try {
       el.pause();
@@ -124,7 +123,6 @@ function stopVideo() {
     } catch(e) {}
   });
   
-  // 3. YouTube iframe - src ni tozalash
   document.querySelectorAll('.modal-video iframe').forEach(iframe => {
     if (iframe && iframe.src) {
       try {
@@ -255,11 +253,13 @@ function renderMovies(movies) {
 
 async function openMovie(id) {
   showLoading('Film yuklanmoqda...');
+  currentMovieId = id;
   
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
     
+    // Film ma'lumotlarini olish
     const res = await fetch(`${API_URL}/movies/${id}`, { signal: controller.signal });
     clearTimeout(timeoutId);
     
@@ -269,6 +269,19 @@ async function openMovie(id) {
     if (!data.success) throw new Error(data.message || 'Film topilmadi');
     
     currentMovie = data.data;
+    
+    // Like/Dislike holatini olish
+    const ratingRes = await fetch(`${API_URL}/movies/${id}/rating`, { signal: controller.signal });
+    if (ratingRes.ok) {
+      const ratingData = await ratingRes.json();
+      if (ratingData.success) {
+        currentMovie.userLiked = ratingData.data.userLiked;
+        currentMovie.userDisliked = ratingData.data.userDisliked;
+        currentMovie.likes = ratingData.data.likes;
+        currentMovie.dislikes = ratingData.data.dislikes;
+      }
+    }
+    
     hideLoading();
     
     const age = currentMovie.yoshChegarasi || '0+';
@@ -289,14 +302,28 @@ async function openMovie(id) {
 }
 
 // =========================================================
-// SHOW DETAILS
+// SHOW DETAILS (LIKE/DISLIKE BILAN)
 // =========================================================
 
 function showDetails(m) {
   const defaultImg = getDefaultImage();
   let posterUrl = fixImageUrl(m.rasm);
 
-  let videoHtml = '', qismlarHtml = '';
+  let videoHtml = '', qismlarHtml = '', ratingHtml = '';
+
+  // ===== RATING (Like/Dislike) =====
+  ratingHtml = `
+    <div class="rating-container">
+      <button class="rating-btn like-btn ${m.userLiked ? 'active' : ''}" onclick="handleLike('${m._id}')">
+        <span class="rating-icon">👍</span>
+        <span class="rating-count" id="likeCount-${m._id}">${m.likes || 0}</span>
+      </button>
+      <button class="rating-btn dislike-btn ${m.userDisliked ? 'active' : ''}" onclick="handleDislike('${m._id}')">
+        <span class="rating-icon">👎</span>
+        <span class="rating-count" id="dislikeCount-${m._id}">${m.dislikes || 0}</span>
+      </button>
+    </div>
+  `;
 
   // ===== VIDEO =====
   if (m.turi === 'film') {
@@ -383,6 +410,10 @@ function showDetails(m) {
       
       <div class="modal-right">
         ${videoHtml}
+        
+        <!-- LIKE/DISLIKE -->
+        ${ratingHtml}
+        
         <h2>${m.nomi}</h2>
         <div class="movie-meta">
           <span>${m.turi === 'film' ? '🎬 Film' : '📺 Serial'}</span>
@@ -400,6 +431,92 @@ function showDetails(m) {
   setTimeout(() => {
     currentVideoPlayer = document.getElementById('player');
   }, 100);
+}
+
+// =========================================================
+// LIKE / DISLIKE FUNKSIYALARI
+// =========================================================
+
+async function handleLike(movieId) {
+  try {
+    const res = await fetch(`${API_URL}/movies/${movieId}/like`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message);
+    
+    // UI ni yangilash
+    updateRatingUI(movieId, data.data);
+    
+    // currentMovie ni yangilash
+    if (currentMovie && currentMovie._id === movieId) {
+      currentMovie.likes = data.data.likes;
+      currentMovie.dislikes = data.data.dislikes;
+      currentMovie.userLiked = data.data.userLiked;
+      currentMovie.userDisliked = data.data.userDisliked;
+    }
+  } catch (error) {
+    console.error('Like xatosi:', error);
+    alert('❌ Like qo\'shishda xatolik: ' + error.message);
+  }
+}
+
+async function handleDislike(movieId) {
+  try {
+    const res = await fetch(`${API_URL}/movies/${movieId}/dislike`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message);
+    
+    // UI ni yangilash
+    updateRatingUI(movieId, data.data);
+    
+    // currentMovie ni yangilash
+    if (currentMovie && currentMovie._id === movieId) {
+      currentMovie.likes = data.data.likes;
+      currentMovie.dislikes = data.data.dislikes;
+      currentMovie.userLiked = data.data.userLiked;
+      currentMovie.userDisliked = data.data.userDisliked;
+    }
+  } catch (error) {
+    console.error('Dislike xatosi:', error);
+    alert('❌ Dislike qo\'shishda xatolik: ' + error.message);
+  }
+}
+
+function updateRatingUI(movieId, data) {
+  // Like sonini yangilash
+  const likeCount = document.getElementById(`likeCount-${movieId}`);
+  if (likeCount) {
+    likeCount.textContent = data.likes || 0;
+  }
+  
+  // Dislike sonini yangilash
+  const dislikeCount = document.getElementById(`dislikeCount-${movieId}`);
+  if (dislikeCount) {
+    dislikeCount.textContent = data.dislikes || 0;
+  }
+  
+  // Like tugmasi holati
+  const likeBtn = document.querySelector(`.like-btn`);
+  if (likeBtn) {
+    likeBtn.classList.toggle('active', data.userLiked);
+  }
+  
+  // Dislike tugmasi holati
+  const dislikeBtn = document.querySelector(`.dislike-btn`);
+  if (dislikeBtn) {
+    dislikeBtn.classList.toggle('active', data.userDisliked);
+  }
 }
 
 // =========================================================
@@ -495,10 +612,8 @@ function playQism(index) {
 // =========================================================
 
 function closeModal() {
-  // 1. Videoni to'xtatish
   stopVideo();
   
-  // 2. Video konteynerni tozalash
   const videoContainer = document.querySelector('.modal-video');
   if (videoContainer) {
     const iframe = videoContainer.querySelector('iframe');
@@ -514,11 +629,8 @@ function closeModal() {
     }
   }
   
-  // 3. Modallarni yopish
   movieModal.classList.remove('active');
   ageModal.classList.remove('active');
-  
-  // 4. Scrolni qayta tiklash
   document.body.style.overflow = '';
 }
 
@@ -581,3 +693,5 @@ window.loadMovies = loadMovies;
 window.openMovie = openMovie;
 window.playQism = playQism;
 window.closeModal = closeModal;
+window.handleLike = handleLike;
+window.handleDislike = handleDislike;
