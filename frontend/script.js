@@ -1,5 +1,5 @@
 // =========================================================
-// MOVIEHUB FRONTEND - TO'LIQ (LIKE/DISLIKE BILAN)
+// MOVIEHUB FRONTEND - TO'LIQ (LIKE/DISLIKE TUZATILGAN)
 // =========================================================
 
 const API_URL = 'https://movieehubbackend.onrender.com/api';
@@ -24,7 +24,6 @@ let currentMovie = null;
 let isFirstLoad = true;
 let currentAbortController = null;
 let currentVideoPlayer = null;
-let currentMovieId = null;
 
 // =========================================================
 // SVG ICONLAR
@@ -94,9 +93,6 @@ function fixImageUrl(url) {
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
   if (url.startsWith('/uploads/')) return BASE_URL + url;
   if (url.startsWith('uploads/')) return BASE_URL + '/' + url;
-  if (url.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)) {
-    return BASE_URL + '/uploads/' + url;
-  }
   return getDefaultImage();
 }
 
@@ -284,7 +280,6 @@ function renderMovies(movies) {
 
 async function openMovie(id) {
   showLoading('Film yuklanmoqda...');
-  currentMovieId = id;
   
   try {
     const controller = new AbortController();
@@ -301,27 +296,30 @@ async function openMovie(id) {
     currentMovie = data.data;
     
     // Like/Dislike holatini olish
-    const ratingRes = await fetch(`${API_URL}/movies/${id}/rating`, { signal: controller.signal });
-    if (ratingRes.ok) {
-      const ratingData = await ratingRes.json();
-      if (ratingData.success) {
-        currentMovie.userLiked = ratingData.data.userLiked;
-        currentMovie.userDisliked = ratingData.data.userDisliked;
-        currentMovie.likes = ratingData.data.likes;
-        currentMovie.dislikes = ratingData.data.dislikes;
-        
-        // Qismlar uchun rating
-        if (currentMovie.qismlar && ratingData.data.qismlar) {
-          ratingData.data.qismlar.forEach((qRating, index) => {
-            if (currentMovie.qismlar[index]) {
-              currentMovie.qismlar[index].likes = qRating.likes;
-              currentMovie.qismlar[index].dislikes = qRating.dislikes;
-              currentMovie.qismlar[index].userLiked = qRating.userLiked;
-              currentMovie.qismlar[index].userDisliked = qRating.userDisliked;
-            }
-          });
+    try {
+      const ratingRes = await fetch(`${API_URL}/movies/${id}/rating`, { signal: controller.signal });
+      if (ratingRes.ok) {
+        const ratingData = await ratingRes.json();
+        if (ratingData.success) {
+          currentMovie.userLiked = ratingData.data.userLiked || false;
+          currentMovie.userDisliked = ratingData.data.userDisliked || false;
+          currentMovie.likes = ratingData.data.likes || 0;
+          currentMovie.dislikes = ratingData.data.dislikes || 0;
+          
+          if (currentMovie.qismlar && ratingData.data.qismlar) {
+            ratingData.data.qismlar.forEach((qRating, index) => {
+              if (currentMovie.qismlar[index]) {
+                currentMovie.qismlar[index].likes = qRating.likes || 0;
+                currentMovie.qismlar[index].dislikes = qRating.dislikes || 0;
+                currentMovie.qismlar[index].userLiked = qRating.userLiked || false;
+                currentMovie.qismlar[index].userDisliked = qRating.userDisliked || false;
+              }
+            });
+          }
         }
       }
+    } catch (e) {
+      console.log('Rating yuklash xatosi:', e);
     }
     
     hideLoading();
@@ -344,7 +342,7 @@ async function openMovie(id) {
 }
 
 // =========================================================
-// SHOW DETAILS (LIKE/DISLIKE BILAN)
+// SHOW DETAILS
 // =========================================================
 
 function showDetails(m) {
@@ -428,7 +426,6 @@ function showDetails(m) {
       videoHtml = `<p style="color:var(--color-text-secondary);padding:20px;">📺 Video mavjud emas</p>`;
     }
     
-    // ===== QISMLAR (LIKE/DISLIKE BILAN) =====
     qismlarHtml = `
       <div class="qismlar-container">
         <div class="qismlar-list">
@@ -478,7 +475,6 @@ function showDetails(m) {
       <div class="modal-right">
         ${videoHtml}
         
-        <!-- LIKE/DISLIKE -->
         ${ratingHtml}
         
         <h2>${m.nomi}</h2>
@@ -508,9 +504,7 @@ async function handleLike(movieId) {
   try {
     const res = await fetch(`${API_URL}/movies/${movieId}/like`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      }
+      headers: { 'Content-Type': 'application/json' }
     });
     
     const data = await res.json();
@@ -526,7 +520,7 @@ async function handleLike(movieId) {
     }
   } catch (error) {
     console.error('Like xatosi:', error);
-    alert('❌ Like qo\'shishda xatolik: ' + error.message);
+    alert('❌ Xatolik: ' + error.message);
   }
 }
 
@@ -534,9 +528,7 @@ async function handleDislike(movieId) {
   try {
     const res = await fetch(`${API_URL}/movies/${movieId}/dislike`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      }
+      headers: { 'Content-Type': 'application/json' }
     });
     
     const data = await res.json();
@@ -552,7 +544,7 @@ async function handleDislike(movieId) {
     }
   } catch (error) {
     console.error('Dislike xatosi:', error);
-    alert('❌ Dislike qo\'shishda xatolik: ' + error.message);
+    alert('❌ Xatolik: ' + error.message);
   }
 }
 
@@ -671,23 +663,11 @@ function updateQismRatingUI(movieId, qismIndex, data) {
 // =========================================================
 
 function playQism(index) {
-  console.log('🎬 Qism bosildi:', index);
-  
-  if (!currentMovie) {
-    console.error('❌ currentMovie mavjud emas');
-    return;
-  }
-  
-  if (!currentMovie.qismlar || currentMovie.qismlar.length === 0) {
-    console.error('❌ Qismlar mavjud emas');
-    return;
-  }
+  if (!currentMovie) return;
+  if (!currentMovie.qismlar || currentMovie.qismlar.length === 0) return;
   
   const qism = currentMovie.qismlar[index];
-  if (!qism) {
-    console.error('❌ Qism topilmadi:', index);
-    return;
-  }
+  if (!qism) return;
   
   stopVideo();
   
@@ -696,17 +676,9 @@ function playQism(index) {
   });
 
   const videoUrl = fixVideoUrl(qism.video);
-  
-  if (!videoUrl) {
-    const videoContainer = document.querySelector('.modal-right .modal-video');
-    if (videoContainer) {
-      videoContainer.innerHTML = `<p style="color:var(--color-text-secondary);padding:20px;">📺 Video URL mavjud emas</p>`;
-    }
-    return;
-  }
+  if (!videoUrl) return;
   
   let videoContainer = document.querySelector('.modal-right .modal-video');
-  
   if (!videoContainer) {
     const modalRight = document.querySelector('.modal-right');
     if (modalRight) {
@@ -717,10 +689,7 @@ function playQism(index) {
     }
   }
   
-  if (!videoContainer) {
-    console.error('❌ Video konteyner topilmadi');
-    return;
-  }
+  if (!videoContainer) return;
   
   videoContainer.innerHTML = '';
   
