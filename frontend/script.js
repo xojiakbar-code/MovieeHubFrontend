@@ -1,5 +1,5 @@
 // =========================================================
-// MOVIEHUB FRONTEND - TO'LIQ (LIKE/DISLIKE TUZATILGAN)
+// MOVIEHUB FRONTEND - TUZATILGAN (LIKE/DISLIKE)
 // =========================================================
 
 const API_URL = 'https://movieehubbackend.onrender.com/api';
@@ -115,7 +115,6 @@ function isYouTubeUrl(url) {
 
 function getYouTubeEmbedUrl(url) {
   let videoId = '';
-  
   if (url.includes('watch?v=')) {
     videoId = url.split('watch?v=')[1].split('&')[0];
   } else if (url.includes('youtu.be/')) {
@@ -123,7 +122,6 @@ function getYouTubeEmbedUrl(url) {
   } else if (url.includes('/embed/')) {
     videoId = url.split('/embed/')[1].split('?')[0];
   }
-  
   if (videoId) {
     return `https://www.youtube.com/embed/${videoId}?autoplay=0&rel=0&modestbranding=1&showinfo=0&iv_load_policy=3&controls=1&color=white&disablekb=1&fs=1&hl=uz`;
   }
@@ -136,31 +134,15 @@ function getYouTubeEmbedUrl(url) {
 
 function stopVideo() {
   if (currentVideoPlayer) {
-    try {
-      currentVideoPlayer.pause();
-      currentVideoPlayer.currentTime = 0;
-    } catch(e) {}
+    try { currentVideoPlayer.pause(); currentVideoPlayer.currentTime = 0; } catch(e) {}
     currentVideoPlayer = null;
   }
-  
   document.querySelectorAll('.modal-video video').forEach(el => {
-    try {
-      el.pause();
-      el.currentTime = 0;
-    } catch(e) {}
+    try { el.pause(); el.currentTime = 0; } catch(e) {}
   });
-  
   document.querySelectorAll('.modal-video iframe').forEach(iframe => {
-    if (iframe && iframe.src) {
-      try {
-        const currentSrc = iframe.src;
-        if (currentSrc.includes('youtube.com')) {
-          iframe.src = 'about:blank';
-          setTimeout(() => {
-            iframe.src = currentSrc.replace('autoplay=0', 'autoplay=0');
-          }, 100);
-        }
-      } catch(e) {}
+    if (iframe && iframe.src && iframe.src.includes('youtube.com')) {
+      try { iframe.src = 'about:blank'; } catch(e) {}
     }
   });
 }
@@ -174,57 +156,35 @@ async function loadMovies(search = '') {
     currentAbortController.abort();
     currentAbortController = null;
   }
-  
   if (!isFirstLoad) showLoading('Filmlar yuklanmoqda...');
-  
   currentAbortController = new AbortController();
   const signal = currentAbortController.signal;
-  
   try {
     const url = search ? `${API_URL}/movies/search?q=${encodeURIComponent(search)}` : `${API_URL}/movies`;
-    
-    const timeoutId = setTimeout(() => {
-      if (currentAbortController) {
-        currentAbortController.abort();
-      }
-    }, 10000);
-    
+    const timeoutId = setTimeout(() => { if (currentAbortController) currentAbortController.abort(); }, 10000);
     const res = await fetch(url, { signal });
     clearTimeout(timeoutId);
-    
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    
     const data = await res.json();
     if (!data.success) throw new Error(data.message || 'Xatolik');
-    
     renderMovies(data.data || []);
     isFirstLoad = false;
-    
   } catch (error) {
     console.error('Yuklash xatosi:', error);
-    
     if (error.name === 'AbortError') {
       if (!isFirstLoad) {
-        moviesGrid.innerHTML = `
-          <div style="text-align:center;color:var(--color-text-secondary);padding:40px;grid-column:1/-1;">
-            ⏳ So'rov bekor qilindi
-          </div>
-        `;
+        moviesGrid.innerHTML = `<div style="text-align:center;color:var(--color-text-secondary);padding:40px;grid-column:1/-1;">⏳ So'rov bekor qilindi</div>`;
       }
       return;
     }
-    
     moviesGrid.innerHTML = `
       <div style="text-align:center;color:var(--color-danger);padding:40px;grid-column:1/-1;">
         ❌ Xatolik: ${error.message}
         <br />
-        <button onclick="loadMovies()" class="btn btn-primary" style="margin-top:10px;padding:8px 20px;border:none;border-radius:8px;background:var(--color-accent);color:#fff;cursor:pointer;">
-          🔄 Qayta yuklash
-        </button>
+        <button onclick="loadMovies()" class="btn btn-primary" style="margin-top:10px;padding:8px 20px;border:none;border-radius:8px;background:var(--color-accent);color:#fff;cursor:pointer;">🔄 Qayta yuklash</button>
       </div>
     `;
   }
-  
   hideLoading();
   currentAbortController = null;
 }
@@ -239,34 +199,20 @@ function renderMovies(movies) {
       <div style="text-align:center;color:var(--color-text-secondary);padding:40px;grid-column:1/-1;">
         🎬 Filmlar topilmadi
         <br />
-        <button onclick="loadMovies()" class="btn btn-primary" style="margin-top:10px;padding:8px 20px;border:none;border-radius:8px;background:var(--color-accent);color:#fff;cursor:pointer;">
-          🔄 Qayta yuklash
-        </button>
+        <button onclick="loadMovies()" class="btn btn-primary" style="margin-top:10px;padding:8px 20px;border:none;border-radius:8px;background:var(--color-accent);color:#fff;cursor:pointer;">🔄 Qayta yuklash</button>
       </div>
     `;
     return;
   }
-
   const defaultImg = getDefaultImage();
-
   moviesGrid.innerHTML = movies.map(m => {
     let imgUrl = fixImageUrl(m.rasm);
-    
     return `
       <div class="movie-card" onclick="openMovie('${m._id}')">
-        <img 
-          src="${imgUrl}" 
-          alt="${m.nomi}" 
-          class="movie-poster"
-          loading="lazy"
-          onerror="this.onerror=null; this.src='${defaultImg}'"
-        />
+        <img src="${imgUrl}" alt="${m.nomi}" class="movie-poster" loading="lazy" onerror="this.onerror=null; this.src='${defaultImg}'" />
         <div class="movie-info">
           <div class="movie-title">${m.nomi}</div>
-          <div class="movie-meta">
-            <span>${m.yili}</span>
-            <span>${m.turi === 'film' ? '🎬' : '📺'}</span>
-          </div>
+          <div class="movie-meta"><span>${m.yili}</span><span>${m.turi === 'film' ? '🎬' : '📺'}</span></div>
           <div class="movie-genre">${m.janr || ''}</div>
         </div>
       </div>
@@ -280,22 +226,15 @@ function renderMovies(movies) {
 
 async function openMovie(id) {
   showLoading('Film yuklanmoqda...');
-  
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
-    
     const res = await fetch(`${API_URL}/movies/${id}`, { signal: controller.signal });
     clearTimeout(timeoutId);
-    
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    
     const data = await res.json();
     if (!data.success) throw new Error(data.message || 'Film topilmadi');
-    
     currentMovie = data.data;
-    
-    // Like/Dislike holatini olish
     try {
       const ratingRes = await fetch(`${API_URL}/movies/${id}/rating`, { signal: controller.signal });
       if (ratingRes.ok) {
@@ -305,7 +244,6 @@ async function openMovie(id) {
           currentMovie.userDisliked = ratingData.data.userDisliked || false;
           currentMovie.likes = ratingData.data.likes || 0;
           currentMovie.dislikes = ratingData.data.dislikes || 0;
-          
           if (currentMovie.qismlar && ratingData.data.qismlar) {
             ratingData.data.qismlar.forEach((qRating, index) => {
               if (currentMovie.qismlar[index]) {
@@ -318,12 +256,8 @@ async function openMovie(id) {
           }
         }
       }
-    } catch (e) {
-      console.log('Rating yuklash xatosi:', e);
-    }
-    
+    } catch (e) { console.log('Rating yuklash xatosi:', e); }
     hideLoading();
-    
     const age = currentMovie.yoshChegarasi || '0+';
     if (RESTRICTED_AGES.includes(age)) {
       ageMessage.textContent = `Ushbu film uchun yosh chegarasi ${age} deb belgilangan. Sizning yoshingiz ${age} ga yetarlimi?`;
@@ -342,21 +276,20 @@ async function openMovie(id) {
 }
 
 // =========================================================
-// SHOW DETAILS
+// SHOW DETAILS - LIKE/DISLIKE BTN GROUP
 // =========================================================
 
 function showDetails(m) {
   const defaultImg = getDefaultImage();
   let posterUrl = fixImageUrl(m.rasm);
-
   let videoHtml = '', qismlarHtml = '', ratingHtml = '';
 
-  // ===== RATING (Like/Dislike) =====
+  // ===== RATING - BTN GROUP =====
   const likeIcon = m.userLiked ? SVG_ICONS.likeFilled : SVG_ICONS.like;
   const dislikeIcon = m.userDisliked ? SVG_ICONS.dislikeFilled : SVG_ICONS.dislike;
   
   ratingHtml = `
-    <div class="rating-container">
+    <div class="rating-group">
       <button class="rating-btn like-btn ${m.userLiked ? 'active' : ''}" onclick="handleLike('${m._id}')">
         ${likeIcon}
         <span class="rating-count" id="likeCount-${m._id}">${m.likes || 0}</span>
@@ -374,25 +307,9 @@ function showDetails(m) {
     if (videoUrl) {
       if (isYouTubeUrl(videoUrl)) {
         const embedUrl = getYouTubeEmbedUrl(videoUrl);
-        videoHtml = `
-          <div class="modal-video">
-            <iframe 
-              src="${embedUrl}" 
-              allowfullscreen
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              loading="lazy"
-              sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-            ></iframe>
-          </div>
-        `;
+        videoHtml = `<div class="modal-video"><iframe src="${embedUrl}" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" loading="lazy" sandbox="allow-same-origin allow-scripts allow-popups allow-forms"></iframe></div>`;
       } else {
-        videoHtml = `
-          <div class="modal-video">
-            <video controls width="100%" id="player" preload="metadata">
-              <source src="${videoUrl}" type="video/mp4" />
-            </video>
-          </div>
-        `;
+        videoHtml = `<div class="modal-video"><video controls width="100%" id="player" preload="metadata"><source src="${videoUrl}" type="video/mp4" /></video></div>`;
       }
     } else {
       videoHtml = `<p style="color:var(--color-text-secondary);padding:20px;">🎬 Video mavjud emas</p>`;
@@ -402,30 +319,13 @@ function showDetails(m) {
     if (firstVideo) {
       if (isYouTubeUrl(firstVideo)) {
         const embedUrl = getYouTubeEmbedUrl(firstVideo);
-        videoHtml = `
-          <div class="modal-video">
-            <iframe 
-              src="${embedUrl}" 
-              allowfullscreen
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              loading="lazy"
-              sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-            ></iframe>
-          </div>
-        `;
+        videoHtml = `<div class="modal-video"><iframe src="${embedUrl}" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" loading="lazy" sandbox="allow-same-origin allow-scripts allow-popups allow-forms"></iframe></div>`;
       } else {
-        videoHtml = `
-          <div class="modal-video">
-            <video controls width="100%" id="player" preload="metadata">
-              <source src="${firstVideo}" type="video/mp4" />
-            </video>
-          </div>
-        `;
+        videoHtml = `<div class="modal-video"><video controls width="100%" id="player" preload="metadata"><source src="${firstVideo}" type="video/mp4" /></video></div>`;
       }
     } else {
       videoHtml = `<p style="color:var(--color-text-secondary);padding:20px;">📺 Video mavjud emas</p>`;
     }
-    
     qismlarHtml = `
       <div class="qismlar-container">
         <div class="qismlar-list">
@@ -434,21 +334,12 @@ function showDetails(m) {
             const qismDisliked = q.userDisliked || false;
             const likeIconQ = qismLiked ? SVG_ICONS.likeFilled : SVG_ICONS.like;
             const dislikeIconQ = qismDisliked ? SVG_ICONS.dislikeFilled : SVG_ICONS.dislike;
-            
             return `
               <div class="qism-item-wrapper">
-                <button class="qism-btn ${i===0?'active':''}" onclick="playQism(${i})">
-                  ${q.qismRaqami}-qism
-                </button>
+                <button class="qism-btn ${i===0?'active':''}" onclick="playQism(${i})">${q.qismRaqami}-qism</button>
                 <div class="qism-rating">
-                  <button class="qism-like-btn ${qismLiked ? 'active' : ''}" onclick="handleQismLike(${i})">
-                    ${likeIconQ}
-                    <span class="qism-rating-count" id="qismLikeCount-${m._id}-${i}">${q.likes || 0}</span>
-                  </button>
-                  <button class="qism-dislike-btn ${qismDisliked ? 'active' : ''}" onclick="handleQismDislike(${i})">
-                    ${dislikeIconQ}
-                    <span class="qism-rating-count" id="qismDislikeCount-${m._id}-${i}">${q.dislikes || 0}</span>
-                  </button>
+                  <button class="qism-like-btn ${qismLiked ? 'active' : ''}" onclick="handleQismLike(${i})">${likeIconQ}<span class="qism-rating-count" id="qismLikeCount-${m._id}-${i}">${q.likes || 0}</span></button>
+                  <button class="qism-dislike-btn ${qismDisliked ? 'active' : ''}" onclick="handleQismDislike(${i})">${dislikeIconQ}<span class="qism-rating-count" id="qismDislikeCount-${m._id}-${i}">${q.dislikes || 0}</span></button>
                 </div>
               </div>
             `;
@@ -461,22 +352,12 @@ function showDetails(m) {
   modalBody.innerHTML = `
     <div class="modal-movie-detail">
       <div class="modal-left">
-        <div class="modal-poster-container">
-          <img 
-            src="${posterUrl}" 
-            alt="${m.nomi}" 
-            class="modal-poster"
-            onerror="this.onerror=null; this.src='${defaultImg}'"
-          />
-        </div>
+        <div class="modal-poster-container"><img src="${posterUrl}" alt="${m.nomi}" class="modal-poster" onerror="this.onerror=null; this.src='${defaultImg}'" /></div>
         ${qismlarHtml}
       </div>
-      
       <div class="modal-right">
         ${videoHtml}
-        
         ${ratingHtml}
-        
         <h2>${m.nomi}</h2>
         <div class="movie-meta">
           <span>${m.turi === 'film' ? '🎬 Film' : '📺 Serial'}</span>
@@ -490,14 +371,11 @@ function showDetails(m) {
     </div>
   `;
   movieModal.classList.add('active');
-  
-  setTimeout(() => {
-    currentVideoPlayer = document.getElementById('player');
-  }, 100);
+  setTimeout(() => { currentVideoPlayer = document.getElementById('player'); }, 100);
 }
 
 // =========================================================
-// LIKE / DISLIKE - FILM UCHUN
+// LIKE / DISLIKE - FILM (TUZATILGAN)
 // =========================================================
 
 async function handleLike(movieId) {
@@ -506,12 +384,9 @@ async function handleLike(movieId) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
     });
-    
     const data = await res.json();
     if (!data.success) throw new Error(data.message);
-    
     updateRatingUI(movieId, data.data);
-    
     if (currentMovie && currentMovie._id === movieId) {
       currentMovie.likes = data.data.likes;
       currentMovie.dislikes = data.data.dislikes;
@@ -520,7 +395,6 @@ async function handleLike(movieId) {
     }
   } catch (error) {
     console.error('Like xatosi:', error);
-    alert('❌ Xatolik: ' + error.message);
   }
 }
 
@@ -530,12 +404,9 @@ async function handleDislike(movieId) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
     });
-    
     const data = await res.json();
     if (!data.success) throw new Error(data.message);
-    
     updateRatingUI(movieId, data.data);
-    
     if (currentMovie && currentMovie._id === movieId) {
       currentMovie.likes = data.data.likes;
       currentMovie.dislikes = data.data.dislikes;
@@ -544,27 +415,20 @@ async function handleDislike(movieId) {
     }
   } catch (error) {
     console.error('Dislike xatosi:', error);
-    alert('❌ Xatolik: ' + error.message);
   }
 }
 
 function updateRatingUI(movieId, data) {
   const likeCount = document.getElementById(`likeCount-${movieId}`);
-  if (likeCount) {
-    likeCount.textContent = data.likes || 0;
-  }
-  
+  if (likeCount) likeCount.textContent = data.likes || 0;
   const dislikeCount = document.getElementById(`dislikeCount-${movieId}`);
-  if (dislikeCount) {
-    dislikeCount.textContent = data.dislikes || 0;
-  }
+  if (dislikeCount) dislikeCount.textContent = data.dislikes || 0;
   
   const likeBtn = document.querySelector(`.like-btn`);
   if (likeBtn) {
     likeBtn.classList.toggle('active', data.userLiked);
     likeBtn.innerHTML = `${data.userLiked ? SVG_ICONS.likeFilled : SVG_ICONS.like} <span class="rating-count">${data.likes || 0}</span>`;
   }
-  
   const dislikeBtn = document.querySelector(`.dislike-btn`);
   if (dislikeBtn) {
     dislikeBtn.classList.toggle('active', data.userDisliked);
@@ -573,24 +437,20 @@ function updateRatingUI(movieId, data) {
 }
 
 // =========================================================
-// LIKE / DISLIKE - QISM UCHUN
+// LIKE / DISLIKE - QISM (TUZATILGAN)
 // =========================================================
 
 async function handleQismLike(qismIndex) {
   if (!currentMovie) return;
   const movieId = currentMovie._id;
-  
   try {
     const res = await fetch(`${API_URL}/movies/${movieId}/qism/${qismIndex}/like`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
     });
-    
     const data = await res.json();
     if (!data.success) throw new Error(data.message);
-    
     updateQismRatingUI(movieId, qismIndex, data.data);
-    
     if (currentMovie && currentMovie.qismlar && currentMovie.qismlar[qismIndex]) {
       currentMovie.qismlar[qismIndex].likes = data.data.likes;
       currentMovie.qismlar[qismIndex].dislikes = data.data.dislikes;
@@ -599,25 +459,20 @@ async function handleQismLike(qismIndex) {
     }
   } catch (error) {
     console.error('Qism like xatosi:', error);
-    alert('❌ Xatolik: ' + error.message);
   }
 }
 
 async function handleQismDislike(qismIndex) {
   if (!currentMovie) return;
   const movieId = currentMovie._id;
-  
   try {
     const res = await fetch(`${API_URL}/movies/${movieId}/qism/${qismIndex}/dislike`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
     });
-    
     const data = await res.json();
     if (!data.success) throw new Error(data.message);
-    
     updateQismRatingUI(movieId, qismIndex, data.data);
-    
     if (currentMovie && currentMovie.qismlar && currentMovie.qismlar[qismIndex]) {
       currentMovie.qismlar[qismIndex].likes = data.data.likes;
       currentMovie.qismlar[qismIndex].dislikes = data.data.dislikes;
@@ -626,31 +481,23 @@ async function handleQismDislike(qismIndex) {
     }
   } catch (error) {
     console.error('Qism dislike xatosi:', error);
-    alert('❌ Xatolik: ' + error.message);
   }
 }
 
 function updateQismRatingUI(movieId, qismIndex, data) {
   const likeCount = document.getElementById(`qismLikeCount-${movieId}-${qismIndex}`);
-  if (likeCount) {
-    likeCount.textContent = data.likes || 0;
-  }
-  
+  if (likeCount) likeCount.textContent = data.likes || 0;
   const dislikeCount = document.getElementById(`qismDislikeCount-${movieId}-${qismIndex}`);
-  if (dislikeCount) {
-    dislikeCount.textContent = data.dislikes || 0;
-  }
+  if (dislikeCount) dislikeCount.textContent = data.dislikes || 0;
   
   const qismWrapper = document.querySelectorAll('.qism-item-wrapper')[qismIndex];
   if (qismWrapper) {
     const likeBtn = qismWrapper.querySelector('.qism-like-btn');
     const dislikeBtn = qismWrapper.querySelector('.qism-dislike-btn');
-    
     if (likeBtn) {
       likeBtn.classList.toggle('active', data.userLiked);
       likeBtn.innerHTML = `${data.userLiked ? SVG_ICONS.likeFilled : SVG_ICONS.like} <span class="qism-rating-count">${data.likes || 0}</span>`;
     }
-    
     if (dislikeBtn) {
       dislikeBtn.classList.toggle('active', data.userDisliked);
       dislikeBtn.innerHTML = `${data.userDisliked ? SVG_ICONS.dislikeFilled : SVG_ICONS.dislike} <span class="qism-rating-count">${data.dislikes || 0}</span>`;
@@ -665,19 +512,12 @@ function updateQismRatingUI(movieId, qismIndex, data) {
 function playQism(index) {
   if (!currentMovie) return;
   if (!currentMovie.qismlar || currentMovie.qismlar.length === 0) return;
-  
   const qism = currentMovie.qismlar[index];
   if (!qism) return;
-  
   stopVideo();
-  
-  document.querySelectorAll('.qism-btn').forEach((btn, i) => {
-    btn.classList.toggle('active', i === index);
-  });
-
+  document.querySelectorAll('.qism-btn').forEach((btn, i) => btn.classList.toggle('active', i === index));
   const videoUrl = fixVideoUrl(qism.video);
   if (!videoUrl) return;
-  
   let videoContainer = document.querySelector('.modal-right .modal-video');
   if (!videoContainer) {
     const modalRight = document.querySelector('.modal-right');
@@ -688,35 +528,17 @@ function playQism(index) {
       videoContainer = newVideoContainer;
     }
   }
-  
   if (!videoContainer) return;
-  
   videoContainer.innerHTML = '';
-  
   if (isYouTubeUrl(videoUrl)) {
     const embedUrl = getYouTubeEmbedUrl(videoUrl);
-    videoContainer.innerHTML = `
-      <iframe 
-        src="${embedUrl}" 
-        allowfullscreen
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        loading="lazy"
-        sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-      ></iframe>
-    `;
+    videoContainer.innerHTML = `<iframe src="${embedUrl}" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" loading="lazy" sandbox="allow-same-origin allow-scripts allow-popups allow-forms"></iframe>`;
   } else {
-    videoContainer.innerHTML = `
-      <video controls width="100%" id="player" preload="metadata">
-        <source src="${videoUrl}" type="video/mp4" />
-      </video>
-    `;
+    videoContainer.innerHTML = `<video controls width="100%" id="player" preload="metadata"><source src="${videoUrl}" type="video/mp4" /></video>`;
   }
-  
   setTimeout(() => {
     currentVideoPlayer = document.getElementById('player');
-    if (currentVideoPlayer) {
-      currentVideoPlayer.play().catch(() => {});
-    }
+    if (currentVideoPlayer) currentVideoPlayer.play().catch(() => {});
   }, 100);
 }
 
@@ -726,22 +548,13 @@ function playQism(index) {
 
 function closeModal() {
   stopVideo();
-  
   const videoContainer = document.querySelector('.modal-video');
   if (videoContainer) {
     const iframe = videoContainer.querySelector('iframe');
-    if (iframe) {
-      iframe.src = 'about:blank';
-    }
+    if (iframe) iframe.src = 'about:blank';
     const video = videoContainer.querySelector('video');
-    if (video) {
-      video.pause();
-      video.currentTime = 0;
-      video.removeAttribute('src');
-      video.load();
-    }
+    if (video) { video.pause(); video.currentTime = 0; video.removeAttribute('src'); video.load(); }
   }
-  
   movieModal.classList.remove('active');
   ageModal.classList.remove('active');
   document.body.style.overflow = '';
@@ -751,37 +564,18 @@ function closeModal() {
 // EVENTS
 // =========================================================
 
-ageYes.addEventListener('click', () => { 
-  ageModal.classList.remove('active'); 
-  showDetails(currentMovie); 
-});
-
-ageNo.addEventListener('click', () => { 
-  closeModal();
-});
-
-modalClose.addEventListener('click', () => {
-  closeModal();
-});
-
-movieModal.addEventListener('click', (e) => {
-  if (e.target === movieModal) {
-    closeModal();
-  }
-});
+ageYes.addEventListener('click', () => { ageModal.classList.remove('active'); showDetails(currentMovie); });
+ageNo.addEventListener('click', closeModal);
+modalClose.addEventListener('click', closeModal);
+movieModal.addEventListener('click', (e) => { if (e.target === movieModal) closeModal(); });
 
 searchBtn.addEventListener('click', () => {
   const q = searchInput.value.trim();
-  if (q.length >= 2) {
-    loadMovies(q);
-  } else if (q === '') {
-    loadMovies('');
-  }
+  if (q.length >= 2) loadMovies(q);
+  else if (q === '') loadMovies('');
 });
 
-searchInput.addEventListener('keypress', (e) => { 
-  if (e.key === 'Enter') searchBtn.click(); 
-});
+searchInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') searchBtn.click(); });
 
 // =========================================================
 // LOAD
@@ -797,11 +591,9 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     </div>
   `).join('');
-  
   setTimeout(() => loadMovies(), 100);
 });
 
-// Global funksiyalar
 window.loadMovies = loadMovies;
 window.openMovie = openMovie;
 window.playQism = playQism;
