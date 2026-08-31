@@ -797,3 +797,74 @@ hr {
     border-radius: var(--radius-sm);
   }
 }
+
+/* =========================================================
+   RATING - LIKE / DISLIKE
+   ========================================================= */
+.rating-container {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 0;
+  margin: 4px 0;
+}
+
+.rating-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--color-surface-raised);
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all var(--duration) var(--ease);
+}
+
+.rating-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-text);
+}
+
+.rating-btn .rating-icon {
+  font-size: 1rem;
+}
+
+.rating-btn .rating-count {
+  font-size: 0.85rem;
+  min-width: 20px;
+  text-align: center;
+}
+
+/* Like tugmasi aktiv holat */
+.like-btn.active {
+  background: rgba(52, 199, 89, 0.15);
+  border-color: var(--color-accent-green);
+  color: var(--color-accent-green);
+}
+
+/* Dislike tugmasi aktiv holat */
+.dislike-btn.active {
+  background: rgba(255, 59, 48, 0.15);
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .rating-container {
+    gap: 8px;
+  }
+  
+  .rating-btn {
+    padding: 4px 10px;
+    font-size: 0.8rem;
+  }
+  
+  .rating-btn .rating-icon {
+    font-size: 0.85rem;
+  }
+}
