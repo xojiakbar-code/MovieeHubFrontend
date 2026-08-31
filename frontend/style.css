@@ -799,37 +799,77 @@ hr {
 }
 
 /* =========================================================
-   QISMLAR - LIKE/DISLIKE BILAN
+   RATING - BTN GROUP
    ========================================================= */
-.qismlar-container {
-  margin-top: 8px;
-}
-
-.qismlar-list {
+.rating-group {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  align-items: center;
+  padding: 6px 0;
+  margin: 2px 0;
 }
 
+.rating-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.rating-btn:hover {
+  border-color: var(--color-text-secondary);
+  color: var(--color-text);
+}
+
+.rating-btn .rating-count {
+  font-size: 0.75rem;
+  min-width: 16px;
+  text-align: center;
+}
+
+/* Like aktiv */
+.like-btn.active {
+  background: rgba(52, 199, 89, 0.15);
+  border-color: var(--color-accent-green);
+  color: var(--color-accent-green);
+}
+
+/* Dislike aktiv */
+.dislike-btn.active {
+  background: rgba(255, 59, 48, 0.15);
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+/* =========================================================
+   QISMLAR
+   ========================================================= */
 .qism-item-wrapper {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 0;
+  gap: 6px;
+  padding: 3px 6px;
   background: var(--color-surface-raised);
   border-radius: var(--radius-sm);
-  padding: 4px 8px;
 }
 
 .qism-btn {
-  padding: 4px 12px;
+  padding: 3px 10px;
   background: var(--color-surface);
-  border: 0.5px solid var(--color-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
   color: var(--color-text-secondary);
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   cursor: pointer;
-  transition: all var(--duration) var(--ease);
+  transition: all 0.2s ease;
   flex-shrink: 0;
 }
 
@@ -844,10 +884,9 @@ hr {
   color: #fff;
 }
 
-/* Qism rating */
 .qism-rating {
   display: flex;
-  gap: 4px;
+  gap: 3px;
   align-items: center;
   margin-left: auto;
 }
@@ -856,65 +895,42 @@ hr {
 .qism-dislike-btn {
   display: flex;
   align-items: center;
-  gap: 3px;
-  padding: 2px 6px;
+  gap: 2px;
+  padding: 1px 5px;
   background: transparent;
   border: none;
   border-radius: var(--radius-pill);
   color: var(--color-text-tertiary);
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   cursor: pointer;
-  transition: all var(--duration) var(--ease);
+  transition: all 0.2s ease;
 }
 
-.qism-like-btn:hover {
-  color: var(--color-accent-green);
-}
-
-.qism-dislike-btn:hover {
-  color: var(--color-danger);
-}
-
-.qism-like-btn.active {
-  color: var(--color-accent-green);
-}
-
-.qism-dislike-btn.active {
-  color: var(--color-danger);
-}
+.qism-like-btn:hover { color: var(--color-accent-green); }
+.qism-dislike-btn:hover { color: var(--color-danger); }
+.qism-like-btn.active { color: var(--color-accent-green); }
+.qism-dislike-btn.active { color: var(--color-danger); }
 
 .qism-like-btn svg,
 .qism-dislike-btn svg {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
 }
 
 .qism-rating-count {
-  font-size: 0.7rem;
-  min-width: 16px;
+  font-size: 0.6rem;
+  min-width: 12px;
   text-align: center;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-  .qism-item-wrapper {
-    flex-wrap: wrap;
-    gap: 4px;
-  }
-  
-  .qism-btn {
-    font-size: 0.7rem;
+  .rating-btn {
     padding: 3px 8px;
+    font-size: 0.7rem;
   }
-  
-  .qism-like-btn svg,
-  .qism-dislike-btn svg {
-    width: 12px;
-    height: 12px;
-  }
-  
-  .qism-rating-count {
-    font-size: 0.6rem;
-    min-width: 12px;
-  }
+  .rating-btn svg { width: 14px; height: 14px; }
+  .qism-item-wrapper { flex-wrap: wrap; gap: 4px; }
+  .qism-btn { font-size: 0.65rem; padding: 2px 8px; }
+  .qism-like-btn svg, .qism-dislike-btn svg { width: 10px; height: 10px; }
 }
