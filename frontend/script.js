@@ -26,7 +26,7 @@ let isFirstLoad = true;
 let currentAbortController = null;
 let currentVideoPlayer = null;
 let searchTimeout = null;
-let allMovies = [];
+let allMovies = [];       // backenddan kelgan TO'LIQ ro'yxat (bo'sh qidiruv bilan yuklangan)
 let activeSuggestionIndex = -1;
 
 // =========================================================
@@ -126,7 +126,7 @@ function stopVideo() {
 // =========================================================
 // AQLLI QIDIRUV — HARFLARGA MOSLASHUVCHI (FUZZY + SUBSEQUENCE)
 // =========================================================
-// "Conset" -> "Konsertlar" ni topadi:
+// "Conset"/"Consert" -> "Konsert" ni topadi:
 //  1) Harflarni sinflarga normallashtiradi (c/k/q, s/z, o/a, ...)
 //  2) Subsequence matching — orada boshqa harflar bo'lsa ham
 //     ketma-ket mos kelgan harflarni hisoblaydi.
@@ -186,7 +186,7 @@ function fuzzyScore(query, name) {
     return n.startsWith(q) ? 0.9 : (coverage >= 1 ? 0.5 : 0);
   }
 
-  if (coverage < 0.6) return 0;
+  if (coverage < 0.55) return 0;
 
   const span = lastMatch - firstMatch + 1;
   const density = q.length / span;
@@ -294,14 +294,11 @@ searchInput.addEventListener('keydown', function(e) {
   const items = Array.from(suggestionsContainer.querySelectorAll('.suggestion-item:not(.no-result)'));
 
   if (e.key === 'Enter') {
-    // Agar takliflardan biri klaviatura bilan tanlangan bo'lsa — o'shani ochadi
     if (suggestionsContainer.classList.contains('active') && activeSuggestionIndex >= 0 && items[activeSuggestionIndex]) {
       e.preventDefault();
       items[activeSuggestionIndex].click();
       return;
     }
-    // Aks holda — Enter bosilganda fuzzy qidiruv natijalarini
-    // GRID ichida ko'rsatadi ("Conset" -> "Konsert..." kabi)
     e.preventDefault();
     runSearch();
     return;
@@ -323,25 +320,78 @@ searchInput.addEventListener('keydown', function(e) {
   }
 });
 
-// Enter yoki qidiruv tugmasi bosilganda ishlaydigan umumiy funksiya
+// =========================================================
+// ENTER / QIDIRUV TUGMASI BOSILGANDA — TUZATILDI
+// =========================================================
+// MUAMMO EDI: backendga so'rov ketib, backend bo'sh natija
+// qaytarsa, u local fuzzy natijalarni "topilmadi" bilan
+// bosib ketardi. Endi: local fuzzy natija topilsa, backend
+// javobi bo'sh bo'lganda ham O'SHA natija grid'da qoladi.
+
 function runSearch() {
   const query = searchInput.value.trim();
   suggestionsContainer.classList.remove('active');
   suggestionsContainer.innerHTML = '';
 
-  if (query.length > 0) {
-    // 1) Darhol local fuzzy natijalarni ko'rsatish (Konsert, Consert va h.k.)
-    const localResults = getSearchSuggestions(allMovies, query);
-    if (localResults.length > 0) {
-      renderMovies(localResults);
-    } else {
-      renderLoadingCards();
-    }
-    // 2) Backenddan ham so'rov yuborish (aniqroq/yangi natijalar uchun)
-    loadMovies(query);
-  } else {
+  if (query.length === 0) {
     loadMovies('');
+    return;
   }
+
+  // 1) Darhol LOCAL fuzzy natijalarni ko'rsatish
+  //    (allMovies — bo'sh so'rov bilan yuklangan TO'LIQ ro'yxat)
+  const localResults = getSearchSuggestions(allMovies, query);
+
+  if (localResults.length > 0) {
+    renderMovies(localResults);
+  } else {
+    renderLoadingCards();
+  }
+
+  // 2) Backendga ham so'rov yuboramiz, lekin natijani faqat
+  //    backend NATIJA BERGANDA almashtiramiz — bo'sh javob
+  //    local natijalarni o'chirmaydi.
+  searchOnServer(query, localResults);
+}
+
+async function searchOnServer(query, fallbackResults) {
+  if (currentAbortController) {
+    currentAbortController.abort();
+    currentAbortController = null;
+  }
+  currentAbortController = new AbortController();
+  const signal = currentAbortController.signal;
+
+  try {
+    const timeoutId = setTimeout(() => { if (currentAbortController) currentAbortController.abort(); }, 10000);
+    const res = await fetch(`${API_URL}/movies/search?q=${encodeURIComponent(query)}`, { signal });
+    clearTimeout(timeoutId);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message || 'Xatolik');
+
+    const serverResults = data.data || [];
+
+    if (serverResults.length > 0) {
+      // Backend natija topsa — uni ko'rsatamiz (aniqroq bo'lishi mumkin)
+      renderMovies(serverResults);
+    } else if (fallbackResults.length > 0) {
+      // Backend bo'sh qaytardi, lekin LOCAL fuzzy natija bor edi —
+      // O'SHANI saqlab qolamiz, "topilmadi" ko'rsatmaymiz
+      renderMovies(fallbackResults);
+    } else {
+      // Ikkalasida ham natija yo'q — endi "topilmadi" to'g'ri
+      renderMovies([]);
+    }
+  } catch (error) {
+    if (error.name === 'AbortError') return;
+    console.error('Qidiruv xatosi:', error);
+    // Xatolik bo'lsa ham, local natijalar bo'lsa ko'rsatishda davom etamiz
+    if (fallbackResults.length > 0) {
+      renderMovies(fallbackResults);
+    }
+  }
+  currentAbortController = null;
 }
 
 // =========================================================
@@ -374,13 +424,11 @@ function renderLoadingCards() {
       `);
     }
   }
-  // Alohida .loading-grid wrapper YO'Q — to'g'ridan-to'g'ri
-  // .movies-grid ichiga (u allaqachon HTML da mavjud)
   moviesGrid.innerHTML = cards.join('');
 }
 
 // =========================================================
-// FILMLARNI YUKLASH
+// FILMLARNI YUKLASH (bosh sahifa / bo'sh qidiruv)
 // =========================================================
 
 async function loadMovies(search = '') {
@@ -388,10 +436,8 @@ async function loadMovies(search = '') {
     currentAbortController.abort();
     currentAbortController = null;
   }
-  if (!isFirstLoad) {
-    // Loading paytida ham grid struktura buzilmasligi uchun
-    // skeletonni GRID ICHIGA chizamiz (agar hali natija ko'rsatilmagan bo'lsa)
-    if (moviesGrid.children.length === 0) renderLoadingCards();
+  if (!isFirstLoad && moviesGrid.children.length === 0) {
+    renderLoadingCards();
   }
   currentAbortController = new AbortController();
   const signal = currentAbortController.signal;
@@ -404,16 +450,15 @@ async function loadMovies(search = '') {
     const data = await res.json();
     if (!data.success) throw new Error(data.message || 'Xatolik');
 
-    allMovies = data.data || [];
+    const results = data.data || [];
 
-    // Agar backend qidiruvi natija bermasa, lekin local fuzzy
-    // moslik topsa — local natijalarni ko'rsatamiz (Konsert holati)
-    if (search && allMovies.length === 0) {
-      const localFallback = getSearchSuggestions(allMovies.length ? allMovies : [], search);
-      renderMovies(localFallback);
-    } else {
-      renderMovies(allMovies);
+    // Faqat bo'sh qidiruv (bosh sahifa yuklanishi) allMovies'ni
+    // TO'LIQ ro'yxat sifatida saqlaydi — shu fuzzy qidiruv uchun ishlatiladi
+    if (!search) {
+      allMovies = results;
     }
+
+    renderMovies(results);
     isFirstLoad = false;
   } catch (error) {
     console.error('Yuklash xatosi:', error);
