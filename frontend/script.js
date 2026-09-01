@@ -1,5 +1,5 @@
 // =========================================================
-// MOVIEHUB FRONTEND - YANGI (AQLLI QIDIRUV BILAN)
+// MOVIEHUB FRONTEND - TO'LIQ TUZATILGAN
 // =========================================================
 
 const API_URL = 'https://movieehubbackend.onrender.com/api';
@@ -26,6 +26,7 @@ let isFirstLoad = true;
 let currentAbortController = null;
 let currentVideoPlayer = null;
 let searchTimeout = null;
+let allMovies = [];
 
 // =========================================================
 // LOADING
@@ -56,14 +57,33 @@ function getDefaultImage() {
 }
 
 // =========================================================
-// URL FIX
+// URL FIX - RASMLAR TO'G'RILANGAN
 // =========================================================
 
 function fixImageUrl(url) {
   if (!url) return getDefaultImage();
-  if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  if (url.startsWith('/uploads/')) return BASE_URL + url;
-  if (url.startsWith('uploads/')) return BASE_URL + '/' + url;
+  
+  // Agar URL to'g'ridan-to'g'ri http yoki https bo'lsa
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  
+  // Agar URL /uploads/ bilan boshlansa
+  if (url.startsWith('/uploads/')) {
+    return BASE_URL + url;
+  }
+  
+  // Agar URL uploads/ bilan boshlansa (slashsiz)
+  if (url.startsWith('uploads/')) {
+    return BASE_URL + '/' + url;
+  }
+  
+  // Agar URL faqat fayl nomi bo'lsa
+  if (url.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)) {
+    return BASE_URL + '/uploads/' + url;
+  }
+  
+  // Hech narsa bo'lmasa default rasm
   return getDefaultImage();
 }
 
@@ -119,7 +139,7 @@ function stopVideo() {
 }
 
 // =========================================================
-// AQLLI QIDIRUV - YouTube uslubida
+// AQLLI QIDIRUV
 // =========================================================
 
 function getSearchSuggestions(query, movies) {
@@ -128,20 +148,14 @@ function getSearchSuggestions(query, movies) {
   const q = query.toLowerCase().trim();
   const results = [];
   
-  // 1. To'liq moslik
   const exactMatches = movies.filter(m => 
     m.nomi.toLowerCase().includes(q) || 
     m.janr.toLowerCase().includes(q)
   );
   
-  // 2. Harflar bo'yicha moslik (masalan: "Mr.Robot" -> "M.Robt")
   const fuzzyMatches = movies.filter(m => {
     const name = m.nomi.toLowerCase();
-    // Har bir harfni tekshirish
-    let nameIndex = 0;
-    let queryIndex = 0;
-    let matches = 0;
-    
+    let nameIndex = 0, queryIndex = 0, matches = 0;
     while (nameIndex < name.length && queryIndex < q.length) {
       if (name[nameIndex] === q[queryIndex]) {
         matches++;
@@ -149,12 +163,9 @@ function getSearchSuggestions(query, movies) {
       }
       nameIndex++;
     }
-    
-    // 60% dan yuqori moslik bo'lsa
     return matches / q.length >= 0.6;
   });
   
-  // Natijalarni birlashtirish (takrorlanmasin)
   const allResults = [...exactMatches, ...fuzzyMatches];
   const uniqueResults = [];
   const seenIds = new Set();
@@ -169,10 +180,6 @@ function getSearchSuggestions(query, movies) {
   return uniqueResults;
 }
 
-// =========================================================
-// QIDIRUV TAKLIFLARINI KO'RSATISH
-// =========================================================
-
 function showSuggestions(movies, query) {
   if (!query || query.length < 1) {
     suggestionsContainer.classList.remove('active');
@@ -180,7 +187,7 @@ function showSuggestions(movies, query) {
     return;
   }
   
-  const suggestions = getSearchSuggestions(query, movies);
+  const suggestions = getSearchSuggestions(movies, query);
   
   if (suggestions.length === 0) {
     suggestionsContainer.innerHTML = `
@@ -192,27 +199,25 @@ function showSuggestions(movies, query) {
     return;
   }
   
-  // Faqat 5 tagacha taklif ko'rsatish
   const topSuggestions = suggestions.slice(0, 5);
   
-  suggestionsContainer.innerHTML = topSuggestions.map(m => `
-    <div class="suggestion-item" onclick="selectSuggestion('${m._id}')">
-      <div class="suggestion-poster">
-        <img src="${fixImageUrl(m.rasm)}" alt="${m.nomi}" onerror="this.src='${getDefaultImage()}'" />
+  suggestionsContainer.innerHTML = topSuggestions.map(m => {
+    const imgUrl = fixImageUrl(m.rasm);
+    return `
+      <div class="suggestion-item" onclick="selectSuggestion('${m._id}')">
+        <div class="suggestion-poster">
+          <img src="${imgUrl}" alt="${m.nomi}" onerror="this.src='${getDefaultImage()}'" />
+        </div>
+        <div class="suggestion-info">
+          <div class="suggestion-title">${m.nomi}</div>
+          <div class="suggestion-meta">${m.yili} • ${m.janr}</div>
+        </div>
       </div>
-      <div class="suggestion-info">
-        <div class="suggestion-title">${m.nomi}</div>
-        <div class="suggestion-meta">${m.yili} • ${m.janr}</div>
-      </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
   
   suggestionsContainer.classList.add('active');
 }
-
-// =========================================================
-// QIDIRUV TAKLIFINI TANLASH
-// =========================================================
 
 function selectSuggestion(movieId) {
   suggestionsContainer.classList.remove('active');
@@ -221,10 +226,41 @@ function selectSuggestion(movieId) {
 }
 
 // =========================================================
-// FILMLARNI YUKLASH
+// LOADING KARTOCHKALAR
 // =========================================================
 
-let allMovies = [];
+function renderLoadingCards() {
+  const cards = [];
+  for (let i = 0; i < 8; i++) {
+    const isWide = (i % 3 === 0);
+    if (isWide) {
+      cards.push(`
+        <div class="loading-card-wide">
+          <div class="poster-placeholder"></div>
+          <div class="info-placeholder">
+            <div class="title-placeholder"></div>
+            <div class="meta-placeholder"></div>
+          </div>
+        </div>
+      `);
+    } else {
+      cards.push(`
+        <div class="loading-card">
+          <div class="poster-placeholder"></div>
+          <div class="info-placeholder">
+            <div class="title-placeholder"></div>
+            <div class="meta-placeholder"></div>
+          </div>
+        </div>
+      `);
+    }
+  }
+  moviesGrid.innerHTML = `<div class="loading-grid">${cards.join('')}</div>`;
+}
+
+// =========================================================
+// FILMLARNI YUKLASH
+// =========================================================
 
 async function loadMovies(search = '') {
   if (currentAbortController) {
@@ -267,7 +303,7 @@ async function loadMovies(search = '') {
 }
 
 // =========================================================
-// RENDER MOVIES - KENG KARTOCHKALAR
+// RENDER MOVIES - TUZATILGAN
 // =========================================================
 
 function renderMovies(movies) {
@@ -284,11 +320,9 @@ function renderMovies(movies) {
   
   const defaultImg = getDefaultImage();
   
-  // Kartochkalarni 2 xil o'lchamda ko'rsatish
   moviesGrid.innerHTML = movies.map((m, index) => {
-    let imgUrl = fixImageUrl(m.rasm);
-    // Har 3-chi kartochka kengroq (width katta, height kichik)
-    const isWide = index % 3 === 0;
+    const imgUrl = fixImageUrl(m.rasm);
+    const isWide = (index % 3 === 0);
     const cardClass = isWide ? 'movie-card-wide' : 'movie-card';
     
     return `
@@ -296,16 +330,19 @@ function renderMovies(movies) {
         <img 
           src="${imgUrl}" 
           alt="${m.nomi}" 
-          class="movie-poster ${isWide ? 'poster-wide' : ''}"
+          class="movie-poster"
           loading="lazy"
           onerror="this.onerror=null; this.src='${defaultImg}'"
         />
         <div class="movie-info">
-          <div class="movie-title">${m.nomi}</div>
+          <div>
+            <div class="movie-title">${m.nomi}</div>
+            ${isWide ? `<div class="movie-genre">${m.janr || ''}</div>` : ''}
+          </div>
           <div class="movie-meta">
             <span>${m.yili}</span>
             <span>${m.turi === 'film' ? '🎬' : '📺'}</span>
-            <span>${m.janr || ''}</span>
+            ${!isWide ? `<span>${m.janr || ''}</span>` : ''}
           </div>
         </div>
       </div>
@@ -352,10 +389,9 @@ async function openMovie(id) {
 
 function showDetails(m) {
   const defaultImg = getDefaultImage();
-  let posterUrl = fixImageUrl(m.rasm);
+  const posterUrl = fixImageUrl(m.rasm);
   let videoHtml = '', qismlarHtml = '';
 
-  // ===== VIDEO =====
   if (m.turi === 'film') {
     const videoUrl = fixVideoUrl(m.video);
     if (videoUrl) {
@@ -384,7 +420,9 @@ function showDetails(m) {
       <div class="qismlar-container">
         <div class="qismlar-list">
           ${m.qismlar.map((q, i) => `
-            <button class="qism-btn ${i===0?'active':''}" onclick="playQism(${i})">${q.qismRaqami}-qism</button>
+            <div class="qism-item-wrapper">
+              <button class="qism-btn ${i===0?'active':''}" onclick="playQism(${i})">${q.qismRaqami}-qism</button>
+            </div>
           `).join('')}
         </div>
       </div>
@@ -394,7 +432,9 @@ function showDetails(m) {
   modalBody.innerHTML = `
     <div class="modal-movie-detail">
       <div class="modal-left">
-        <div class="modal-poster-container"><img src="${posterUrl}" alt="${m.nomi}" class="modal-poster" onerror="this.onerror=null; this.src='${defaultImg}'" /></div>
+        <div class="modal-poster-container">
+          <img src="${posterUrl}" alt="${m.nomi}" class="modal-poster" onerror="this.onerror=null; this.src='${defaultImg}'" />
+        </div>
         ${qismlarHtml}
       </div>
       <div class="modal-right">
@@ -471,26 +511,18 @@ function closeModal() {
 }
 
 // =========================================================
-// QIDIRUV - REAL-TIME TAKLIFLAR
+// QIDIRUV EVENTS
 // =========================================================
 
 searchInput.addEventListener('input', function(e) {
   const query = this.value.trim();
-  
-  // Oldingi timeoutni tozalash
-  if (searchTimeout) {
-    clearTimeout(searchTimeout);
-  }
-  
-  // Agar qidiruv bo'sh bo'lsa, takliflarni yashirish
+  if (searchTimeout) clearTimeout(searchTimeout);
   if (query.length === 0) {
     suggestionsContainer.classList.remove('active');
     suggestionsContainer.innerHTML = '';
     loadMovies('');
     return;
   }
-  
-  // 300ms keyin qidiruv takliflarini ko'rsatish
   searchTimeout = setTimeout(() => {
     showSuggestions(allMovies, query);
   }, 300);
@@ -500,20 +532,14 @@ searchBtn.addEventListener('click', function() {
   const query = searchInput.value.trim();
   suggestionsContainer.classList.remove('active');
   suggestionsContainer.innerHTML = '';
-  if (query.length > 0) {
-    loadMovies(query);
-  } else {
-    loadMovies('');
-  }
+  if (query.length > 0) loadMovies(query);
+  else loadMovies('');
 });
 
 searchInput.addEventListener('keypress', function(e) {
-  if (e.key === 'Enter') {
-    searchBtn.click();
-  }
+  if (e.key === 'Enter') searchBtn.click();
 });
 
-// Click outside suggestions
 document.addEventListener('click', function(e) {
   if (!e.target.closest('.search-container') && !e.target.closest('.suggestions-container')) {
     suggestionsContainer.classList.remove('active');
@@ -535,18 +561,11 @@ movieModal.addEventListener('click', (e) => { if (e.target === movieModal) close
 // =========================================================
 
 document.addEventListener('DOMContentLoaded', () => {
-  moviesGrid.innerHTML = Array(8).fill(0).map(() => `
-    <div class="loading-card">
-      <div class="poster-placeholder"></div>
-      <div class="info-placeholder">
-        <div class="title-placeholder"></div>
-        <div class="meta-placeholder"></div>
-      </div>
-    </div>
-  `).join('');
+  renderLoadingCards();
   setTimeout(() => loadMovies(), 100);
 });
 
+// Global funksiyalar
 window.loadMovies = loadMovies;
 window.openMovie = openMovie;
 window.playQism = playQism;
