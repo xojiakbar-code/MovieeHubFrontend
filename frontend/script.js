@@ -1,5 +1,5 @@
 // =========================================================
-// MOVIEHUB FRONTEND - TO'LIQ (AQLLI QIDIRUV)
+// MOVIEHUB FRONTEND - TO'LIQ (AQLLI QIDIRUV, HARFLARGA MOSLASHUVCHI)
 // =========================================================
 
 const API_URL = 'https://movieehubbackend.onrender.com/api';
@@ -27,6 +27,7 @@ let currentAbortController = null;
 let currentVideoPlayer = null;
 let searchTimeout = null;
 let allMovies = [];
+let activeSuggestionIndex = -1;
 
 // =========================================================
 // LOADING
@@ -123,144 +124,173 @@ function stopVideo() {
 }
 
 // =========================================================
-// AQLLI QIDIRUV - HARFLARNI SOLISHTIRISH (FUZZY SEARCH)
+// AQLLI QIDIRUV — HARFLARGA MOSLASHUVCHI (FUZZY + SUBSEQUENCE)
 // =========================================================
+// Maqsad: "Conset" -> "Konsertlar" ni topishi.
+// Bu yerda ikkita mexanizm ishlaydi:
+//  1) Lotin harflarini normallashtirish (c<->k, s<->sh/z, ...)
+//  2) Subsequence matching — query harflari nom ichida
+//     KETMA-KET (lekin orada boshqa harflar bo'lishi mumkin)
+//     tartibda uchrasa moslik hisoblanadi.
+// Shu bilan birga oddiy "includes" moslik ham tekshiriladi,
+// bitta yoki bir nechta harf yozilganda ham natija chiqadi.
 
-function getSearchSuggestions(query, movies) {
-  if (!query || query.length < 1) return [];
-  
-  const q = query.toLowerCase().trim();
-  const results = [];
-  
-  // 1. To'liq moslik (includes)
-  const exactMatches = movies.filter(m => 
-    m.nomi.toLowerCase().includes(q) || 
-    m.janr.toLowerCase().includes(q)
-  );
-  
-  // 2. Harflarni solishtirish (fuzzy matching)
-  // Masalan: "Consert" -> "Konsert" ni topishi kerak
-  const fuzzyMatches = movies.filter(m => {
-    const name = m.nomi.toLowerCase();
-    
-    // Harflarni solishtirish
-    let nameIndex = 0;
-    let queryIndex = 0;
-    let matches = 0;
-    
-    // O'xshash harflar (C=K, S=sh, va hokazo)
-    const similarChars = {
-      'c': ['k', 's'],
-      's': ['sh', 'z'],
-      'z': ['s'],
-      'k': ['c', 'q'],
-      'q': ['k'],
-      'o': ['a'],
-      'a': ['o'],
-      'e': ['i'],
-      'i': ['e'],
-      'y': ['i'],
-      'u': ['o']
-    };
-    
-    while (nameIndex < name.length && queryIndex < q.length) {
-      const nameChar = name[nameIndex];
-      const queryChar = q[queryIndex];
-      
-      // To'g'ridan-to'g'ri moslik
-      if (nameChar === queryChar) {
-        matches++;
-        queryIndex++;
-      } 
-      // O'xshash harflar bilan moslik
-      else if (similarChars[nameChar] && similarChars[nameChar].includes(queryChar)) {
-        matches++;
-        queryIndex++;
-      }
-      else if (similarChars[queryChar] && similarChars[queryChar].includes(nameChar)) {
-        matches++;
-        queryIndex++;
-      }
-      // Harf tashlab ketish (masalan: "Konsert" -> "Consert" da 'o' tashlab ketgan)
-      else {
-        // 1 harf tashlab ketishga ruxsat
-        if (queryIndex < q.length - 1 && name[nameIndex] === q[queryIndex + 1]) {
-          matches++;
-          queryIndex += 2;
-        }
-        // Yoki name dan 1 harf tashlab ketish
-        else {
-          nameIndex++;
-          continue;
-        }
-      }
-      nameIndex++;
-    }
-    
-    // 60% dan yuqori moslik bo'lsa
-    const matchPercent = matches / Math.max(q.length, name.length);
-    return matchPercent >= 0.5;
-  });
-  
-  // 3. Birinchi harf bo'yicha moslik (agar 1-2 harf bo'lsa)
-  const firstCharMatches = movies.filter(m => {
-    if (q.length <= 2) {
-      return m.nomi.toLowerCase().startsWith(q);
-    }
-    return false;
-  });
-  
-  // Natijalarni birlashtirish (takrorlanmasin)
-  const allResults = [...exactMatches, ...fuzzyMatches, ...firstCharMatches];
-  const uniqueResults = [];
-  const seenIds = new Set();
-  
-  for (const movie of allResults) {
-    if (!seenIds.has(movie._id)) {
-      seenIds.add(movie._id);
-      uniqueResults.push(movie);
+// Harflarni bir xil "sinf"ga tushiruvchi normalizatsiya jadvali
+const CHAR_CLASS_MAP = {
+  'k': 'k', 'c': 'k', 'q': 'k',
+  's': 's', 'z': 's',
+  'o': 'o', 'a': 'o',
+  'e': 'e', 'i': 'e', 'y': 'e',
+  'u': 'u', 'v': 'v', 'w': 'v',
+  'g': 'g', "g'": 'g', 'gʻ': 'g', 'ğ': 'g',
+  'x': 'x', 'h': 'x'
+};
+
+function normalizeChar(ch) {
+  return CHAR_CLASS_MAP[ch] || ch;
+}
+
+function normalizeString(str) {
+  return str
+    .toLowerCase()
+    .replace(/[’'ʻ`]/g, '')
+    .split('')
+    .map(normalizeChar)
+    .join('');
+}
+
+// Subsequence + fuzzy score: query harflari name ichida
+// tartib bo'yicha (orada boshqa harflar bo'lishi mumkin)
+// topilsa, qanchalik "zich" joylashganiga qarab ball beradi.
+function fuzzyScore(query, name) {
+  const q = normalizeString(query.trim());
+  const n = normalizeString(name);
+
+  if (!q) return 0;
+
+  // To'g'ridan-to'g'ri substring bo'lsa — eng yuqori ball
+  if (n.includes(q)) {
+    return 1;
+  }
+
+  // Subsequence tekshiruvi
+  let qi = 0;
+  let firstMatch = -1;
+  let lastMatch = -1;
+  let matchedCount = 0;
+
+  for (let ni = 0; ni < n.length && qi < q.length; ni++) {
+    if (n[ni] === q[qi]) {
+      if (firstMatch === -1) firstMatch = ni;
+      lastMatch = ni;
+      matchedCount++;
+      qi++;
     }
   }
-  
-  return uniqueResults;
+
+  // Query harflarining qanchasi topildi
+  const coverage = matchedCount / q.length;
+
+  // Hech bo'lmasa 1 ta harf (query juda qisqa bo'lsa) yoki
+  // yetarlicha harf mos kelishi kerak
+  if (matchedCount === 0) return 0;
+
+  // Bitta yoki ikkita harfli qidiruvlarda — boshidan moslik
+  if (q.length <= 2) {
+    return n.startsWith(q) ? 0.9 : (coverage >= 1 ? 0.5 : 0);
+  }
+
+  if (coverage < 0.6) return 0;
+
+  // Zichlik: harflar qanchalik yaqin joylashgan bo'lsa shuncha yaxshi
+  const span = lastMatch - firstMatch + 1;
+  const density = q.length / span;
+
+  return 0.3 + coverage * 0.4 + density * 0.3;
+}
+
+function getSearchSuggestions(movies, query) {
+  if (!query || query.length < 1) return [];
+
+  const q = query.trim();
+  if (!q) return [];
+
+  const scored = movies.map(m => {
+    const nameScore = fuzzyScore(q, m.nomi || '');
+    const genreScore = fuzzyScore(q, m.janr || '') * 0.6; // janr biroz kamroq vazn
+    const score = Math.max(nameScore, genreScore);
+    return { movie: m, score };
+  });
+
+  return scored
+    .filter(x => x.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map(x => x.movie);
+}
+
+function highlightMatch(text, query) {
+  // Oddiy vizual urg'u: to'g'ridan-to'g'ri substring topilsa belgilaydi,
+  // topilmasa (fuzzy holat) matnni o'zgartirmasdan qaytaradi.
+  const nText = normalizeString(text);
+  const nQuery = normalizeString(query.trim());
+  const idx = nText.indexOf(nQuery);
+  if (idx === -1 || !nQuery) return escapeHtml(text);
+
+  // Asl matndagi mos keluvchi qismni topish (normalize uzunligi bir xil
+  // bo'lgani uchun indekslar mos keladi)
+  const before = text.slice(0, idx);
+  const match = text.slice(idx, idx + nQuery.length);
+  const after = text.slice(idx + nQuery.length);
+  return `${escapeHtml(before)}<mark style="background:var(--color-accent);color:#fff;border-radius:3px;padding:0 2px;">${escapeHtml(match)}</mark>${escapeHtml(after)}`;
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 function showSuggestions(movies, query) {
+  activeSuggestionIndex = -1;
+
   if (!query || query.length < 1) {
     suggestionsContainer.classList.remove('active');
     suggestionsContainer.innerHTML = '';
     return;
   }
-  
+
   const suggestions = getSearchSuggestions(movies, query);
-  
+
   if (suggestions.length === 0) {
     suggestionsContainer.innerHTML = `
       <div class="suggestion-item no-result">
-        <span>🔍 Natija topilmadi: "${query}"</span>
+        <span>🔍 Natija topilmadi: "${escapeHtml(query)}"</span>
       </div>
     `;
     suggestionsContainer.classList.add('active');
     return;
   }
-  
-  const topSuggestions = suggestions.slice(0, 5);
-  
-  suggestionsContainer.innerHTML = topSuggestions.map(m => {
+
+  const topSuggestions = suggestions.slice(0, 6);
+
+  suggestionsContainer.innerHTML = topSuggestions.map((m, i) => {
     const imgUrl = fixImageUrl(m.rasm);
+    const titleHtml = highlightMatch(m.nomi, query);
     return `
-      <div class="suggestion-item" onclick="selectSuggestion('${m._id}')">
+      <div class="suggestion-item" data-index="${i}" onclick="selectSuggestion('${m._id}')">
         <div class="suggestion-poster">
-          <img src="${imgUrl}" alt="${m.nomi}" onerror="this.src='${getDefaultImage()}'" />
+          <img src="${imgUrl}" alt="${escapeHtml(m.nomi)}" onerror="this.src='${getDefaultImage()}'" />
         </div>
         <div class="suggestion-info">
-          <div class="suggestion-title">${m.nomi}</div>
+          <div class="suggestion-title">${titleHtml}</div>
           <div class="suggestion-meta">${m.yili} • ${m.janr}</div>
         </div>
       </div>
     `;
   }).join('');
-  
+
   suggestionsContainer.classList.add('active');
 }
 
@@ -269,6 +299,39 @@ function selectSuggestion(movieId) {
   suggestionsContainer.innerHTML = '';
   openMovie(movieId);
 }
+
+// Klaviatura bilan boshqarish (yuqori/pastga, Enter)
+function updateActiveSuggestion(items) {
+  items.forEach((el, i) => {
+    el.classList.toggle('active-suggestion', i === activeSuggestionIndex);
+  });
+  if (activeSuggestionIndex >= 0 && items[activeSuggestionIndex]) {
+    items[activeSuggestionIndex].scrollIntoView({ block: 'nearest' });
+  }
+}
+
+searchInput.addEventListener('keydown', function(e) {
+  const items = Array.from(suggestionsContainer.querySelectorAll('.suggestion-item:not(.no-result)'));
+  if (!suggestionsContainer.classList.contains('active') || items.length === 0) return;
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    activeSuggestionIndex = (activeSuggestionIndex + 1) % items.length;
+    updateActiveSuggestion(items);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    activeSuggestionIndex = (activeSuggestionIndex - 1 + items.length) % items.length;
+    updateActiveSuggestion(items);
+  } else if (e.key === 'Enter') {
+    if (activeSuggestionIndex >= 0 && items[activeSuggestionIndex]) {
+      e.preventDefault();
+      items[activeSuggestionIndex].click();
+    }
+  } else if (e.key === 'Escape') {
+    suggestionsContainer.classList.remove('active');
+    suggestionsContainer.innerHTML = '';
+  }
+});
 
 // =========================================================
 // LOADING KARTOCHKALAR
@@ -323,7 +386,7 @@ async function loadMovies(search = '') {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     if (!data.success) throw new Error(data.message || 'Xatolik');
-    
+
     allMovies = data.data || [];
     renderMovies(allMovies);
     isFirstLoad = false;
@@ -362,32 +425,34 @@ function renderMovies(movies) {
     `;
     return;
   }
-  
+
   const defaultImg = getDefaultImage();
-  
+
   moviesGrid.innerHTML = movies.map((m, index) => {
     const imgUrl = fixImageUrl(m.rasm);
     const isWide = (index % 3 === 0);
     const cardClass = isWide ? 'movie-card-wide' : 'movie-card';
-    
+
     return `
       <div class="${cardClass}" onclick="openMovie('${m._id}')">
-        <img 
-          src="${imgUrl}" 
-          alt="${m.nomi}" 
-          class="movie-poster"
-          loading="lazy"
-          onerror="this.onerror=null; this.src='${defaultImg}'"
-        />
+        <div class="poster-wrap">
+          <img
+            src="${imgUrl}"
+            alt="${escapeHtml(m.nomi)}"
+            class="movie-poster"
+            loading="lazy"
+            onerror="this.onerror=null; this.src='${defaultImg}'"
+          />
+        </div>
         <div class="movie-info">
           <div>
-            <div class="movie-title">${m.nomi}</div>
-            ${isWide ? `<div class="movie-genre">${m.janr || ''}</div>` : ''}
+            <div class="movie-title">${escapeHtml(m.nomi)}</div>
+            ${isWide ? `<div class="movie-genre">${escapeHtml(m.janr || '')}</div>` : ''}
           </div>
           <div class="movie-meta">
             <span>${m.yili}</span>
             <span>${m.turi === 'film' ? '🎬' : '📺'}</span>
-            ${!isWide ? `<span>${m.janr || ''}</span>` : ''}
+            ${!isWide ? `<span>${escapeHtml(m.janr || '')}</span>` : ''}
           </div>
         </div>
       </div>
@@ -478,13 +543,13 @@ function showDetails(m) {
     <div class="modal-movie-detail">
       <div class="modal-left">
         <div class="modal-poster-container">
-          <img src="${posterUrl}" alt="${m.nomi}" class="modal-poster" onerror="this.onerror=null; this.src='${defaultImg}'" />
+          <img src="${posterUrl}" alt="${escapeHtml(m.nomi)}" class="modal-poster" onerror="this.onerror=null; this.src='${defaultImg}'" />
         </div>
         ${qismlarHtml}
       </div>
       <div class="modal-right">
         ${videoHtml}
-        <h2>${m.nomi}</h2>
+        <h2>${escapeHtml(m.nomi)}</h2>
         <div class="movie-meta">
           <span>${m.turi === 'film' ? '🎬 Film' : '📺 Serial'}</span>
           <span>${m.yili}</span>
@@ -556,21 +621,32 @@ function closeModal() {
 }
 
 // =========================================================
-// QIDIRUV EVENTS
+// QIDIRUV EVENTS — REAL-TIME (YOUTUBE KABI)
 // =========================================================
 
 searchInput.addEventListener('input', function(e) {
-  const query = this.value.trim();
+  const query = this.value;
   if (searchTimeout) clearTimeout(searchTimeout);
-  if (query.length === 0) {
+
+  if (query.trim().length === 0) {
     suggestionsContainer.classList.remove('active');
     suggestionsContainer.innerHTML = '';
     loadMovies('');
     return;
   }
+
+  // Real-time: har bir harfda tezkor javob (debounce juda qisqa,
+  // YouTube'dagidek "yozayotganda taklif chiqadi" hissi uchun)
   searchTimeout = setTimeout(() => {
     showSuggestions(allMovies, query);
-  }, 300);
+  }, 120);
+});
+
+searchInput.addEventListener('focus', function() {
+  const query = this.value;
+  if (query.trim().length > 0) {
+    showSuggestions(allMovies, query);
+  }
 });
 
 searchBtn.addEventListener('click', function() {
@@ -578,7 +654,11 @@ searchBtn.addEventListener('click', function() {
   suggestionsContainer.classList.remove('active');
   suggestionsContainer.innerHTML = '';
   if (query.length > 0) {
-    // Qidiruvni backend orqali ham bajarish
+    // Local fuzzy natijalar bilan darhol ko'rsatish, keyin backendga so'rov
+    const localResults = getSearchSuggestions(allMovies, query);
+    if (localResults.length > 0) {
+      renderMovies(localResults);
+    }
     loadMovies(query);
   } else {
     loadMovies('');
@@ -586,7 +666,9 @@ searchBtn.addEventListener('click', function() {
 });
 
 searchInput.addEventListener('keypress', function(e) {
-  if (e.key === 'Enter') searchBtn.click();
+  if (e.key === 'Enter' && activeSuggestionIndex === -1) {
+    searchBtn.click();
+  }
 });
 
 document.addEventListener('click', function(e) {
