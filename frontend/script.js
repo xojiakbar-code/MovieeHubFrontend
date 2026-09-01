@@ -1,5 +1,5 @@
 // =========================================================
-// MOVIEHUB FRONTEND - TO'LIQ TUZATILGAN
+// MOVIEHUB FRONTEND - TO'LIQ (AQLLI QIDIRUV)
 // =========================================================
 
 const API_URL = 'https://movieehubbackend.onrender.com/api';
@@ -57,33 +57,17 @@ function getDefaultImage() {
 }
 
 // =========================================================
-// URL FIX - RASMLAR TO'G'RILANGAN
+// URL FIX
 // =========================================================
 
 function fixImageUrl(url) {
   if (!url) return getDefaultImage();
-  
-  // Agar URL to'g'ridan-to'g'ri http yoki https bo'lsa
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    return url;
-  }
-  
-  // Agar URL /uploads/ bilan boshlansa
-  if (url.startsWith('/uploads/')) {
-    return BASE_URL + url;
-  }
-  
-  // Agar URL uploads/ bilan boshlansa (slashsiz)
-  if (url.startsWith('uploads/')) {
-    return BASE_URL + '/' + url;
-  }
-  
-  // Agar URL faqat fayl nomi bo'lsa
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  if (url.startsWith('/uploads/')) return BASE_URL + url;
+  if (url.startsWith('uploads/')) return BASE_URL + '/' + url;
   if (url.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)) {
     return BASE_URL + '/uploads/' + url;
   }
-  
-  // Hech narsa bo'lmasa default rasm
   return getDefaultImage();
 }
 
@@ -139,7 +123,7 @@ function stopVideo() {
 }
 
 // =========================================================
-// AQLLI QIDIRUV
+// AQLLI QIDIRUV - HARFLARNI SOLISHTIRISH (FUZZY SEARCH)
 // =========================================================
 
 function getSearchSuggestions(query, movies) {
@@ -148,25 +132,86 @@ function getSearchSuggestions(query, movies) {
   const q = query.toLowerCase().trim();
   const results = [];
   
+  // 1. To'liq moslik (includes)
   const exactMatches = movies.filter(m => 
     m.nomi.toLowerCase().includes(q) || 
     m.janr.toLowerCase().includes(q)
   );
   
+  // 2. Harflarni solishtirish (fuzzy matching)
+  // Masalan: "Consert" -> "Konsert" ni topishi kerak
   const fuzzyMatches = movies.filter(m => {
     const name = m.nomi.toLowerCase();
-    let nameIndex = 0, queryIndex = 0, matches = 0;
+    
+    // Harflarni solishtirish
+    let nameIndex = 0;
+    let queryIndex = 0;
+    let matches = 0;
+    
+    // O'xshash harflar (C=K, S=sh, va hokazo)
+    const similarChars = {
+      'c': ['k', 's'],
+      's': ['sh', 'z'],
+      'z': ['s'],
+      'k': ['c', 'q'],
+      'q': ['k'],
+      'o': ['a'],
+      'a': ['o'],
+      'e': ['i'],
+      'i': ['e'],
+      'y': ['i'],
+      'u': ['o']
+    };
+    
     while (nameIndex < name.length && queryIndex < q.length) {
-      if (name[nameIndex] === q[queryIndex]) {
+      const nameChar = name[nameIndex];
+      const queryChar = q[queryIndex];
+      
+      // To'g'ridan-to'g'ri moslik
+      if (nameChar === queryChar) {
+        matches++;
+        queryIndex++;
+      } 
+      // O'xshash harflar bilan moslik
+      else if (similarChars[nameChar] && similarChars[nameChar].includes(queryChar)) {
         matches++;
         queryIndex++;
       }
+      else if (similarChars[queryChar] && similarChars[queryChar].includes(nameChar)) {
+        matches++;
+        queryIndex++;
+      }
+      // Harf tashlab ketish (masalan: "Konsert" -> "Consert" da 'o' tashlab ketgan)
+      else {
+        // 1 harf tashlab ketishga ruxsat
+        if (queryIndex < q.length - 1 && name[nameIndex] === q[queryIndex + 1]) {
+          matches++;
+          queryIndex += 2;
+        }
+        // Yoki name dan 1 harf tashlab ketish
+        else {
+          nameIndex++;
+          continue;
+        }
+      }
       nameIndex++;
     }
-    return matches / q.length >= 0.6;
+    
+    // 60% dan yuqori moslik bo'lsa
+    const matchPercent = matches / Math.max(q.length, name.length);
+    return matchPercent >= 0.5;
   });
   
-  const allResults = [...exactMatches, ...fuzzyMatches];
+  // 3. Birinchi harf bo'yicha moslik (agar 1-2 harf bo'lsa)
+  const firstCharMatches = movies.filter(m => {
+    if (q.length <= 2) {
+      return m.nomi.toLowerCase().startsWith(q);
+    }
+    return false;
+  });
+  
+  // Natijalarni birlashtirish (takrorlanmasin)
+  const allResults = [...exactMatches, ...fuzzyMatches, ...firstCharMatches];
   const uniqueResults = [];
   const seenIds = new Set();
   
@@ -192,7 +237,7 @@ function showSuggestions(movies, query) {
   if (suggestions.length === 0) {
     suggestionsContainer.innerHTML = `
       <div class="suggestion-item no-result">
-        <span>🔍 Natija topilmadi</span>
+        <span>🔍 Natija topilmadi: "${query}"</span>
       </div>
     `;
     suggestionsContainer.classList.add('active');
@@ -303,7 +348,7 @@ async function loadMovies(search = '') {
 }
 
 // =========================================================
-// RENDER MOVIES - TUZATILGAN
+// RENDER MOVIES
 // =========================================================
 
 function renderMovies(movies) {
@@ -532,8 +577,12 @@ searchBtn.addEventListener('click', function() {
   const query = searchInput.value.trim();
   suggestionsContainer.classList.remove('active');
   suggestionsContainer.innerHTML = '';
-  if (query.length > 0) loadMovies(query);
-  else loadMovies('');
+  if (query.length > 0) {
+    // Qidiruvni backend orqali ham bajarish
+    loadMovies(query);
+  } else {
+    loadMovies('');
+  }
 });
 
 searchInput.addEventListener('keypress', function(e) {
