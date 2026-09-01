@@ -247,7 +247,7 @@ img { display: block; max-width: 100%; height: auto; }
 }
 
 /* =========================================================
-   MOVIES GRID - TUZATILGAN
+   MOVIES GRID
    ========================================================= */
 .main-content { padding: 24px 0 40px; }
 
@@ -314,7 +314,7 @@ img { display: block; max-width: 100%; height: auto; }
 }
 
 /* =========================================================
-   KENG KARTOCHKA - TUZATILGAN
+   KENG KARTOCHKA - BALANDLIGI OSHIRILGAN
    ========================================================= */
 .movie-card-wide {
   grid-column: span 2;
@@ -326,7 +326,7 @@ img { display: block; max-width: 100%; height: auto; }
   transition: all 0.3s ease;
   display: flex;
   flex-direction: row;
-  height: 220px;
+  height: 280px; /* BALANDLIGI OSHIRILDI */
 }
 
 .movie-card-wide:hover {
@@ -336,7 +336,7 @@ img { display: block; max-width: 100%; height: auto; }
 }
 
 .movie-card-wide .movie-poster {
-  width: 160px;
+  width: 180px; /* KENGAYTIRILDI */
   height: 100%;
   object-fit: cover;
   flex-shrink: 0;
@@ -349,12 +349,12 @@ img { display: block; max-width: 100%; height: auto; }
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 16px 20px;
-  gap: 4px;
+  padding: 20px 24px;
+  gap: 6px;
 }
 
 .movie-card-wide .movie-title {
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   font-weight: var(--font-weight-semibold);
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -365,15 +365,15 @@ img { display: block; max-width: 100%; height: auto; }
 
 .movie-card-wide .movie-meta {
   display: flex;
-  gap: 12px;
+  gap: 14px;
   color: var(--color-text-secondary);
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   flex-wrap: wrap;
 }
 
 .movie-card-wide .movie-genre {
   color: var(--color-accent);
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   font-weight: var(--font-weight-medium);
 }
 
@@ -412,7 +412,7 @@ img { display: block; max-width: 100%; height: auto; }
 }
 
 /* =========================================================
-   LOADING GRID - TUZATILGAN
+   LOADING GRID
    ========================================================= */
 .loading-grid {
   display: grid;
@@ -461,7 +461,7 @@ img { display: block; max-width: 100%; height: auto; }
   border-radius: 4px;
 }
 
-/* Keng loading kartochka */
+/* Keng loading kartochka - balandligi oshirilgan */
 .loading-card-wide {
   grid-column: span 2;
   background: var(--color-surface);
@@ -470,12 +470,12 @@ img { display: block; max-width: 100%; height: auto; }
   border: 0.5px solid var(--color-border);
   display: flex;
   flex-direction: row;
-  height: 220px;
+  height: 280px;
   animation: shimmer 1.2s ease-in-out infinite;
 }
 
 .loading-card-wide .poster-placeholder {
-  width: 160px;
+  width: 180px;
   height: 100%;
   background: linear-gradient(100deg, var(--color-surface) 30%, var(--color-surface-raised) 50%, var(--color-surface) 70%);
   background-size: 200% 100%;
@@ -485,22 +485,22 @@ img { display: block; max-width: 100%; height: auto; }
 
 .loading-card-wide .info-placeholder {
   flex: 1;
-  padding: 16px 20px;
+  padding: 20px 24px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .loading-card-wide .title-placeholder {
-  height: 22px;
+  height: 24px;
   width: 80%;
   background: var(--color-surface-raised);
   border-radius: 4px;
 }
 
 .loading-card-wide .meta-placeholder {
-  height: 14px;
+  height: 16px;
   width: 60%;
   background: var(--color-surface-raised);
   border-radius: 4px;
@@ -870,10 +870,10 @@ hr { border: none; border-top: 0.5px solid var(--color-border); margin: 30px 0; 
     gap: 16px;
   }
   .movie-card-wide, .loading-card-wide {
-    height: 200px;
+    height: 240px;
   }
   .movie-card-wide .movie-poster, .loading-card-wide .poster-placeholder {
-    width: 140px;
+    width: 150px;
   }
 }
 
