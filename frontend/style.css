@@ -624,6 +624,7 @@ img { display: block; max-width: 100%; height: auto; }
 
 .modal-poster {
   width: 100%;
+  hight: 170px;
   aspect-ratio: var(--card-poster-ratio);
   border-radius: var(--radius-md);
   object-fit: cover;
