@@ -1,5 +1,5 @@
 // =========================================================
-// MOVIEHUB FRONTEND - TUZATILGAN (LIKE/DISLIKE)
+// MOVIEHUB FRONTEND - YANGI (AQLLI QIDIRUV BILAN)
 // =========================================================
 
 const API_URL = 'https://movieehubbackend.onrender.com/api';
@@ -19,42 +19,13 @@ const ageYes = $('ageYes');
 const ageNo = $('ageNo');
 const loadingOverlay = $('loadingOverlay');
 const loadingText = $('loadingText');
+const suggestionsContainer = $('suggestionsContainer');
 
 let currentMovie = null;
 let isFirstLoad = true;
 let currentAbortController = null;
 let currentVideoPlayer = null;
-
-// =========================================================
-// SVG ICONLAR
-// =========================================================
-
-const SVG_ICONS = {
-  like: `
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/>
-      <path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>
-    </svg>
-  `,
-  dislike: `
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3h7.66z"/>
-      <path d="M17 2h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"/>
-    </svg>
-  `,
-  likeFilled: `
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/>
-      <path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>
-    </svg>
-  `,
-  dislikeFilled: `
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3h7.66z"/>
-      <path d="M17 2h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"/>
-    </svg>
-  `
-};
+let searchTimeout = null;
 
 // =========================================================
 // LOADING
@@ -148,8 +119,112 @@ function stopVideo() {
 }
 
 // =========================================================
+// AQLLI QIDIRUV - YouTube uslubida
+// =========================================================
+
+function getSearchSuggestions(query, movies) {
+  if (!query || query.length < 1) return [];
+  
+  const q = query.toLowerCase().trim();
+  const results = [];
+  
+  // 1. To'liq moslik
+  const exactMatches = movies.filter(m => 
+    m.nomi.toLowerCase().includes(q) || 
+    m.janr.toLowerCase().includes(q)
+  );
+  
+  // 2. Harflar bo'yicha moslik (masalan: "Mr.Robot" -> "M.Robt")
+  const fuzzyMatches = movies.filter(m => {
+    const name = m.nomi.toLowerCase();
+    // Har bir harfni tekshirish
+    let nameIndex = 0;
+    let queryIndex = 0;
+    let matches = 0;
+    
+    while (nameIndex < name.length && queryIndex < q.length) {
+      if (name[nameIndex] === q[queryIndex]) {
+        matches++;
+        queryIndex++;
+      }
+      nameIndex++;
+    }
+    
+    // 60% dan yuqori moslik bo'lsa
+    return matches / q.length >= 0.6;
+  });
+  
+  // Natijalarni birlashtirish (takrorlanmasin)
+  const allResults = [...exactMatches, ...fuzzyMatches];
+  const uniqueResults = [];
+  const seenIds = new Set();
+  
+  for (const movie of allResults) {
+    if (!seenIds.has(movie._id)) {
+      seenIds.add(movie._id);
+      uniqueResults.push(movie);
+    }
+  }
+  
+  return uniqueResults;
+}
+
+// =========================================================
+// QIDIRUV TAKLIFLARINI KO'RSATISH
+// =========================================================
+
+function showSuggestions(movies, query) {
+  if (!query || query.length < 1) {
+    suggestionsContainer.classList.remove('active');
+    suggestionsContainer.innerHTML = '';
+    return;
+  }
+  
+  const suggestions = getSearchSuggestions(query, movies);
+  
+  if (suggestions.length === 0) {
+    suggestionsContainer.innerHTML = `
+      <div class="suggestion-item no-result">
+        <span>🔍 Natija topilmadi</span>
+      </div>
+    `;
+    suggestionsContainer.classList.add('active');
+    return;
+  }
+  
+  // Faqat 5 tagacha taklif ko'rsatish
+  const topSuggestions = suggestions.slice(0, 5);
+  
+  suggestionsContainer.innerHTML = topSuggestions.map(m => `
+    <div class="suggestion-item" onclick="selectSuggestion('${m._id}')">
+      <div class="suggestion-poster">
+        <img src="${fixImageUrl(m.rasm)}" alt="${m.nomi}" onerror="this.src='${getDefaultImage()}'" />
+      </div>
+      <div class="suggestion-info">
+        <div class="suggestion-title">${m.nomi}</div>
+        <div class="suggestion-meta">${m.yili} • ${m.janr}</div>
+      </div>
+    </div>
+  `).join('');
+  
+  suggestionsContainer.classList.add('active');
+}
+
+// =========================================================
+// QIDIRUV TAKLIFINI TANLASH
+// =========================================================
+
+function selectSuggestion(movieId) {
+  suggestionsContainer.classList.remove('active');
+  suggestionsContainer.innerHTML = '';
+  openMovie(movieId);
+}
+
+// =========================================================
 // FILMLARNI YUKLASH
 // =========================================================
+
+let allMovies = [];
 
 async function loadMovies(search = '') {
   if (currentAbortController) {
@@ -167,7 +242,9 @@ async function loadMovies(search = '') {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     if (!data.success) throw new Error(data.message || 'Xatolik');
-    renderMovies(data.data || []);
+    
+    allMovies = data.data || [];
+    renderMovies(allMovies);
     isFirstLoad = false;
   } catch (error) {
     console.error('Yuklash xatosi:', error);
@@ -190,7 +267,7 @@ async function loadMovies(search = '') {
 }
 
 // =========================================================
-// RENDER MOVIES
+// RENDER MOVIES - KENG KARTOCHKALAR
 // =========================================================
 
 function renderMovies(movies) {
@@ -204,16 +281,32 @@ function renderMovies(movies) {
     `;
     return;
   }
+  
   const defaultImg = getDefaultImage();
-  moviesGrid.innerHTML = movies.map(m => {
+  
+  // Kartochkalarni 2 xil o'lchamda ko'rsatish
+  moviesGrid.innerHTML = movies.map((m, index) => {
     let imgUrl = fixImageUrl(m.rasm);
+    // Har 3-chi kartochka kengroq (width katta, height kichik)
+    const isWide = index % 3 === 0;
+    const cardClass = isWide ? 'movie-card-wide' : 'movie-card';
+    
     return `
-      <div class="movie-card" onclick="openMovie('${m._id}')">
-        <img src="${imgUrl}" alt="${m.nomi}" class="movie-poster" loading="lazy" onerror="this.onerror=null; this.src='${defaultImg}'" />
+      <div class="${cardClass}" onclick="openMovie('${m._id}')">
+        <img 
+          src="${imgUrl}" 
+          alt="${m.nomi}" 
+          class="movie-poster ${isWide ? 'poster-wide' : ''}"
+          loading="lazy"
+          onerror="this.onerror=null; this.src='${defaultImg}'"
+        />
         <div class="movie-info">
           <div class="movie-title">${m.nomi}</div>
-          <div class="movie-meta"><span>${m.yili}</span><span>${m.turi === 'film' ? '🎬' : '📺'}</span></div>
-          <div class="movie-genre">${m.janr || ''}</div>
+          <div class="movie-meta">
+            <span>${m.yili}</span>
+            <span>${m.turi === 'film' ? '🎬' : '📺'}</span>
+            <span>${m.janr || ''}</span>
+          </div>
         </div>
       </div>
     `;
@@ -235,28 +328,6 @@ async function openMovie(id) {
     const data = await res.json();
     if (!data.success) throw new Error(data.message || 'Film topilmadi');
     currentMovie = data.data;
-    try {
-      const ratingRes = await fetch(`${API_URL}/movies/${id}/rating`, { signal: controller.signal });
-      if (ratingRes.ok) {
-        const ratingData = await ratingRes.json();
-        if (ratingData.success) {
-          currentMovie.userLiked = ratingData.data.userLiked || false;
-          currentMovie.userDisliked = ratingData.data.userDisliked || false;
-          currentMovie.likes = ratingData.data.likes || 0;
-          currentMovie.dislikes = ratingData.data.dislikes || 0;
-          if (currentMovie.qismlar && ratingData.data.qismlar) {
-            ratingData.data.qismlar.forEach((qRating, index) => {
-              if (currentMovie.qismlar[index]) {
-                currentMovie.qismlar[index].likes = qRating.likes || 0;
-                currentMovie.qismlar[index].dislikes = qRating.dislikes || 0;
-                currentMovie.qismlar[index].userLiked = qRating.userLiked || false;
-                currentMovie.qismlar[index].userDisliked = qRating.userDisliked || false;
-              }
-            });
-          }
-        }
-      }
-    } catch (e) { console.log('Rating yuklash xatosi:', e); }
     hideLoading();
     const age = currentMovie.yoshChegarasi || '0+';
     if (RESTRICTED_AGES.includes(age)) {
@@ -276,30 +347,13 @@ async function openMovie(id) {
 }
 
 // =========================================================
-// SHOW DETAILS - LIKE/DISLIKE BTN GROUP
+// SHOW DETAILS
 // =========================================================
 
 function showDetails(m) {
   const defaultImg = getDefaultImage();
   let posterUrl = fixImageUrl(m.rasm);
-  let videoHtml = '', qismlarHtml = '', ratingHtml = '';
-
-  // ===== RATING - BTN GROUP =====
-  const likeIcon = m.userLiked ? SVG_ICONS.likeFilled : SVG_ICONS.like;
-  const dislikeIcon = m.userDisliked ? SVG_ICONS.dislikeFilled : SVG_ICONS.dislike;
-  
-  ratingHtml = `
-    <div class="rating-group">
-      <button class="rating-btn like-btn ${m.userLiked ? 'active' : ''}" onclick="handleLike('${m._id}')">
-        ${likeIcon}
-        <span class="rating-count" id="likeCount-${m._id}">${m.likes || 0}</span>
-      </button>
-      <button class="rating-btn dislike-btn ${m.userDisliked ? 'active' : ''}" onclick="handleDislike('${m._id}')">
-        ${dislikeIcon}
-        <span class="rating-count" id="dislikeCount-${m._id}">${m.dislikes || 0}</span>
-      </button>
-    </div>
-  `;
+  let videoHtml = '', qismlarHtml = '';
 
   // ===== VIDEO =====
   if (m.turi === 'film') {
@@ -329,21 +383,9 @@ function showDetails(m) {
     qismlarHtml = `
       <div class="qismlar-container">
         <div class="qismlar-list">
-          ${m.qismlar.map((q, i) => {
-            const qismLiked = q.userLiked || false;
-            const qismDisliked = q.userDisliked || false;
-            const likeIconQ = qismLiked ? SVG_ICONS.likeFilled : SVG_ICONS.like;
-            const dislikeIconQ = qismDisliked ? SVG_ICONS.dislikeFilled : SVG_ICONS.dislike;
-            return `
-              <div class="qism-item-wrapper">
-                <button class="qism-btn ${i===0?'active':''}" onclick="playQism(${i})">${q.qismRaqami}-qism</button>
-                <div class="qism-rating">
-                  <button class="qism-like-btn ${qismLiked ? 'active' : ''}" onclick="handleQismLike(${i})">${likeIconQ}<span class="qism-rating-count" id="qismLikeCount-${m._id}-${i}">${q.likes || 0}</span></button>
-                  <button class="qism-dislike-btn ${qismDisliked ? 'active' : ''}" onclick="handleQismDislike(${i})">${dislikeIconQ}<span class="qism-rating-count" id="qismDislikeCount-${m._id}-${i}">${q.dislikes || 0}</span></button>
-                </div>
-              </div>
-            `;
-          }).join('')}
+          ${m.qismlar.map((q, i) => `
+            <button class="qism-btn ${i===0?'active':''}" onclick="playQism(${i})">${q.qismRaqami}-qism</button>
+          `).join('')}
         </div>
       </div>
     `;
@@ -357,7 +399,6 @@ function showDetails(m) {
       </div>
       <div class="modal-right">
         ${videoHtml}
-        ${ratingHtml}
         <h2>${m.nomi}</h2>
         <div class="movie-meta">
           <span>${m.turi === 'film' ? '🎬 Film' : '📺 Serial'}</span>
@@ -372,137 +413,6 @@ function showDetails(m) {
   `;
   movieModal.classList.add('active');
   setTimeout(() => { currentVideoPlayer = document.getElementById('player'); }, 100);
-}
-
-// =========================================================
-// LIKE / DISLIKE - FILM (TUZATILGAN)
-// =========================================================
-
-async function handleLike(movieId) {
-  try {
-    const res = await fetch(`${API_URL}/movies/${movieId}/like`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    const data = await res.json();
-    if (!data.success) throw new Error(data.message);
-    updateRatingUI(movieId, data.data);
-    if (currentMovie && currentMovie._id === movieId) {
-      currentMovie.likes = data.data.likes;
-      currentMovie.dislikes = data.data.dislikes;
-      currentMovie.userLiked = data.data.userLiked;
-      currentMovie.userDisliked = data.data.userDisliked;
-    }
-  } catch (error) {
-    console.error('Like xatosi:', error);
-  }
-}
-
-async function handleDislike(movieId) {
-  try {
-    const res = await fetch(`${API_URL}/movies/${movieId}/dislike`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    const data = await res.json();
-    if (!data.success) throw new Error(data.message);
-    updateRatingUI(movieId, data.data);
-    if (currentMovie && currentMovie._id === movieId) {
-      currentMovie.likes = data.data.likes;
-      currentMovie.dislikes = data.data.dislikes;
-      currentMovie.userLiked = data.data.userLiked;
-      currentMovie.userDisliked = data.data.userDisliked;
-    }
-  } catch (error) {
-    console.error('Dislike xatosi:', error);
-  }
-}
-
-function updateRatingUI(movieId, data) {
-  const likeCount = document.getElementById(`likeCount-${movieId}`);
-  if (likeCount) likeCount.textContent = data.likes || 0;
-  const dislikeCount = document.getElementById(`dislikeCount-${movieId}`);
-  if (dislikeCount) dislikeCount.textContent = data.dislikes || 0;
-  
-  const likeBtn = document.querySelector(`.like-btn`);
-  if (likeBtn) {
-    likeBtn.classList.toggle('active', data.userLiked);
-    likeBtn.innerHTML = `${data.userLiked ? SVG_ICONS.likeFilled : SVG_ICONS.like} <span class="rating-count">${data.likes || 0}</span>`;
-  }
-  const dislikeBtn = document.querySelector(`.dislike-btn`);
-  if (dislikeBtn) {
-    dislikeBtn.classList.toggle('active', data.userDisliked);
-    dislikeBtn.innerHTML = `${data.userDisliked ? SVG_ICONS.dislikeFilled : SVG_ICONS.dislike} <span class="rating-count">${data.dislikes || 0}</span>`;
-  }
-}
-
-// =========================================================
-// LIKE / DISLIKE - QISM (TUZATILGAN)
-// =========================================================
-
-async function handleQismLike(qismIndex) {
-  if (!currentMovie) return;
-  const movieId = currentMovie._id;
-  try {
-    const res = await fetch(`${API_URL}/movies/${movieId}/qism/${qismIndex}/like`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    const data = await res.json();
-    if (!data.success) throw new Error(data.message);
-    updateQismRatingUI(movieId, qismIndex, data.data);
-    if (currentMovie && currentMovie.qismlar && currentMovie.qismlar[qismIndex]) {
-      currentMovie.qismlar[qismIndex].likes = data.data.likes;
-      currentMovie.qismlar[qismIndex].dislikes = data.data.dislikes;
-      currentMovie.qismlar[qismIndex].userLiked = data.data.userLiked;
-      currentMovie.qismlar[qismIndex].userDisliked = data.data.userDisliked;
-    }
-  } catch (error) {
-    console.error('Qism like xatosi:', error);
-  }
-}
-
-async function handleQismDislike(qismIndex) {
-  if (!currentMovie) return;
-  const movieId = currentMovie._id;
-  try {
-    const res = await fetch(`${API_URL}/movies/${movieId}/qism/${qismIndex}/dislike`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    const data = await res.json();
-    if (!data.success) throw new Error(data.message);
-    updateQismRatingUI(movieId, qismIndex, data.data);
-    if (currentMovie && currentMovie.qismlar && currentMovie.qismlar[qismIndex]) {
-      currentMovie.qismlar[qismIndex].likes = data.data.likes;
-      currentMovie.qismlar[qismIndex].dislikes = data.data.dislikes;
-      currentMovie.qismlar[qismIndex].userLiked = data.data.userLiked;
-      currentMovie.qismlar[qismIndex].userDisliked = data.data.userDisliked;
-    }
-  } catch (error) {
-    console.error('Qism dislike xatosi:', error);
-  }
-}
-
-function updateQismRatingUI(movieId, qismIndex, data) {
-  const likeCount = document.getElementById(`qismLikeCount-${movieId}-${qismIndex}`);
-  if (likeCount) likeCount.textContent = data.likes || 0;
-  const dislikeCount = document.getElementById(`qismDislikeCount-${movieId}-${qismIndex}`);
-  if (dislikeCount) dislikeCount.textContent = data.dislikes || 0;
-  
-  const qismWrapper = document.querySelectorAll('.qism-item-wrapper')[qismIndex];
-  if (qismWrapper) {
-    const likeBtn = qismWrapper.querySelector('.qism-like-btn');
-    const dislikeBtn = qismWrapper.querySelector('.qism-dislike-btn');
-    if (likeBtn) {
-      likeBtn.classList.toggle('active', data.userLiked);
-      likeBtn.innerHTML = `${data.userLiked ? SVG_ICONS.likeFilled : SVG_ICONS.like} <span class="qism-rating-count">${data.likes || 0}</span>`;
-    }
-    if (dislikeBtn) {
-      dislikeBtn.classList.toggle('active', data.userDisliked);
-      dislikeBtn.innerHTML = `${data.userDisliked ? SVG_ICONS.dislikeFilled : SVG_ICONS.dislike} <span class="qism-rating-count">${data.dislikes || 0}</span>`;
-    }
-  }
 }
 
 // =========================================================
@@ -561,6 +471,57 @@ function closeModal() {
 }
 
 // =========================================================
+// QIDIRUV - REAL-TIME TAKLIFLAR
+// =========================================================
+
+searchInput.addEventListener('input', function(e) {
+  const query = this.value.trim();
+  
+  // Oldingi timeoutni tozalash
+  if (searchTimeout) {
+    clearTimeout(searchTimeout);
+  }
+  
+  // Agar qidiruv bo'sh bo'lsa, takliflarni yashirish
+  if (query.length === 0) {
+    suggestionsContainer.classList.remove('active');
+    suggestionsContainer.innerHTML = '';
+    loadMovies('');
+    return;
+  }
+  
+  // 300ms keyin qidiruv takliflarini ko'rsatish
+  searchTimeout = setTimeout(() => {
+    showSuggestions(allMovies, query);
+  }, 300);
+});
+
+searchBtn.addEventListener('click', function() {
+  const query = searchInput.value.trim();
+  suggestionsContainer.classList.remove('active');
+  suggestionsContainer.innerHTML = '';
+  if (query.length > 0) {
+    loadMovies(query);
+  } else {
+    loadMovies('');
+  }
+});
+
+searchInput.addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') {
+    searchBtn.click();
+  }
+});
+
+// Click outside suggestions
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.search-container') && !e.target.closest('.suggestions-container')) {
+    suggestionsContainer.classList.remove('active');
+    suggestionsContainer.innerHTML = '';
+  }
+});
+
+// =========================================================
 // EVENTS
 // =========================================================
 
@@ -568,14 +529,6 @@ ageYes.addEventListener('click', () => { ageModal.classList.remove('active'); sh
 ageNo.addEventListener('click', closeModal);
 modalClose.addEventListener('click', closeModal);
 movieModal.addEventListener('click', (e) => { if (e.target === movieModal) closeModal(); });
-
-searchBtn.addEventListener('click', () => {
-  const q = searchInput.value.trim();
-  if (q.length >= 2) loadMovies(q);
-  else if (q === '') loadMovies('');
-});
-
-searchInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') searchBtn.click(); });
 
 // =========================================================
 // LOAD
@@ -598,7 +551,4 @@ window.loadMovies = loadMovies;
 window.openMovie = openMovie;
 window.playQism = playQism;
 window.closeModal = closeModal;
-window.handleLike = handleLike;
-window.handleDislike = handleDislike;
-window.handleQismLike = handleQismLike;
-window.handleQismDislike = handleQismDislike;
+window.selectSuggestion = selectSuggestion;
