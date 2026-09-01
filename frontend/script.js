@@ -126,16 +126,11 @@ function stopVideo() {
 // =========================================================
 // AQLLI QIDIRUV — HARFLARGA MOSLASHUVCHI (FUZZY + SUBSEQUENCE)
 // =========================================================
-// Maqsad: "Conset" -> "Konsertlar" ni topishi.
-// Bu yerda ikkita mexanizm ishlaydi:
-//  1) Lotin harflarini normallashtirish (c<->k, s<->sh/z, ...)
-//  2) Subsequence matching — query harflari nom ichida
-//     KETMA-KET (lekin orada boshqa harflar bo'lishi mumkin)
-//     tartibda uchrasa moslik hisoblanadi.
-// Shu bilan birga oddiy "includes" moslik ham tekshiriladi,
-// bitta yoki bir nechta harf yozilganda ham natija chiqadi.
+// "Conset" -> "Konsertlar" ni topadi:
+//  1) Harflarni sinflarga normallashtiradi (c/k/q, s/z, o/a, ...)
+//  2) Subsequence matching — orada boshqa harflar bo'lsa ham
+//     ketma-ket mos kelgan harflarni hisoblaydi.
 
-// Harflarni bir xil "sinf"ga tushiruvchi normalizatsiya jadvali
 const CHAR_CLASS_MAP = {
   'k': 'k', 'c': 'k', 'q': 'k',
   's': 's', 'z': 's',
@@ -151,7 +146,7 @@ function normalizeChar(ch) {
 }
 
 function normalizeString(str) {
-  return str
+  return String(str)
     .toLowerCase()
     .replace(/[’'ʻ`]/g, '')
     .split('')
@@ -159,21 +154,16 @@ function normalizeString(str) {
     .join('');
 }
 
-// Subsequence + fuzzy score: query harflari name ichida
-// tartib bo'yicha (orada boshqa harflar bo'lishi mumkin)
-// topilsa, qanchalik "zich" joylashganiga qarab ball beradi.
 function fuzzyScore(query, name) {
   const q = normalizeString(query.trim());
   const n = normalizeString(name);
 
   if (!q) return 0;
 
-  // To'g'ridan-to'g'ri substring bo'lsa — eng yuqori ball
   if (n.includes(q)) {
     return 1;
   }
 
-  // Subsequence tekshiruvi
   let qi = 0;
   let firstMatch = -1;
   let lastMatch = -1;
@@ -188,21 +178,16 @@ function fuzzyScore(query, name) {
     }
   }
 
-  // Query harflarining qanchasi topildi
   const coverage = matchedCount / q.length;
 
-  // Hech bo'lmasa 1 ta harf (query juda qisqa bo'lsa) yoki
-  // yetarlicha harf mos kelishi kerak
   if (matchedCount === 0) return 0;
 
-  // Bitta yoki ikkita harfli qidiruvlarda — boshidan moslik
   if (q.length <= 2) {
     return n.startsWith(q) ? 0.9 : (coverage >= 1 ? 0.5 : 0);
   }
 
   if (coverage < 0.6) return 0;
 
-  // Zichlik: harflar qanchalik yaqin joylashgan bo'lsa shuncha yaxshi
   const span = lastMatch - firstMatch + 1;
   const density = q.length / span;
 
@@ -217,7 +202,7 @@ function getSearchSuggestions(movies, query) {
 
   const scored = movies.map(m => {
     const nameScore = fuzzyScore(q, m.nomi || '');
-    const genreScore = fuzzyScore(q, m.janr || '') * 0.6; // janr biroz kamroq vazn
+    const genreScore = fuzzyScore(q, m.janr || '') * 0.6;
     const score = Math.max(nameScore, genreScore);
     return { movie: m, score };
   });
@@ -228,28 +213,24 @@ function getSearchSuggestions(movies, query) {
     .map(x => x.movie);
 }
 
-function highlightMatch(text, query) {
-  // Oddiy vizual urg'u: to'g'ridan-to'g'ri substring topilsa belgilaydi,
-  // topilmasa (fuzzy holat) matnni o'zgartirmasdan qaytaradi.
-  const nText = normalizeString(text);
-  const nQuery = normalizeString(query.trim());
-  const idx = nText.indexOf(nQuery);
-  if (idx === -1 || !nQuery) return escapeHtml(text);
-
-  // Asl matndagi mos keluvchi qismni topish (normalize uzunligi bir xil
-  // bo'lgani uchun indekslar mos keladi)
-  const before = text.slice(0, idx);
-  const match = text.slice(idx, idx + nQuery.length);
-  const after = text.slice(idx + nQuery.length);
-  return `${escapeHtml(before)}<mark style="background:var(--color-accent);color:#fff;border-radius:3px;padding:0 2px;">${escapeHtml(match)}</mark>${escapeHtml(after)}`;
-}
-
 function escapeHtml(str) {
   return String(str)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+function highlightMatch(text, query) {
+  const nText = normalizeString(text);
+  const nQuery = normalizeString(query.trim());
+  const idx = nText.indexOf(nQuery);
+  if (idx === -1 || !nQuery) return escapeHtml(text);
+
+  const before = text.slice(0, idx);
+  const match = text.slice(idx, idx + nQuery.length);
+  const after = text.slice(idx + nQuery.length);
+  return `${escapeHtml(before)}<mark style="background:var(--color-accent);color:#fff;border-radius:3px;padding:0 2px;">${escapeHtml(match)}</mark>${escapeHtml(after)}`;
 }
 
 function showSuggestions(movies, query) {
@@ -300,7 +281,6 @@ function selectSuggestion(movieId) {
   openMovie(movieId);
 }
 
-// Klaviatura bilan boshqarish (yuqori/pastga, Enter)
 function updateActiveSuggestion(items) {
   items.forEach((el, i) => {
     el.classList.toggle('active-suggestion', i === activeSuggestionIndex);
@@ -312,6 +292,21 @@ function updateActiveSuggestion(items) {
 
 searchInput.addEventListener('keydown', function(e) {
   const items = Array.from(suggestionsContainer.querySelectorAll('.suggestion-item:not(.no-result)'));
+
+  if (e.key === 'Enter') {
+    // Agar takliflardan biri klaviatura bilan tanlangan bo'lsa — o'shani ochadi
+    if (suggestionsContainer.classList.contains('active') && activeSuggestionIndex >= 0 && items[activeSuggestionIndex]) {
+      e.preventDefault();
+      items[activeSuggestionIndex].click();
+      return;
+    }
+    // Aks holda — Enter bosilganda fuzzy qidiruv natijalarini
+    // GRID ichida ko'rsatadi ("Conset" -> "Konsert..." kabi)
+    e.preventDefault();
+    runSearch();
+    return;
+  }
+
   if (!suggestionsContainer.classList.contains('active') || items.length === 0) return;
 
   if (e.key === 'ArrowDown') {
@@ -322,19 +317,35 @@ searchInput.addEventListener('keydown', function(e) {
     e.preventDefault();
     activeSuggestionIndex = (activeSuggestionIndex - 1 + items.length) % items.length;
     updateActiveSuggestion(items);
-  } else if (e.key === 'Enter') {
-    if (activeSuggestionIndex >= 0 && items[activeSuggestionIndex]) {
-      e.preventDefault();
-      items[activeSuggestionIndex].click();
-    }
   } else if (e.key === 'Escape') {
     suggestionsContainer.classList.remove('active');
     suggestionsContainer.innerHTML = '';
   }
 });
 
+// Enter yoki qidiruv tugmasi bosilganda ishlaydigan umumiy funksiya
+function runSearch() {
+  const query = searchInput.value.trim();
+  suggestionsContainer.classList.remove('active');
+  suggestionsContainer.innerHTML = '';
+
+  if (query.length > 0) {
+    // 1) Darhol local fuzzy natijalarni ko'rsatish (Konsert, Consert va h.k.)
+    const localResults = getSearchSuggestions(allMovies, query);
+    if (localResults.length > 0) {
+      renderMovies(localResults);
+    } else {
+      renderLoadingCards();
+    }
+    // 2) Backenddan ham so'rov yuborish (aniqroq/yangi natijalar uchun)
+    loadMovies(query);
+  } else {
+    loadMovies('');
+  }
+}
+
 // =========================================================
-// LOADING KARTOCHKALAR
+// LOADING KARTOCHKALAR — .movies-grid ICHIGA to'g'ridan-to'g'ri
 // =========================================================
 
 function renderLoadingCards() {
@@ -363,7 +374,9 @@ function renderLoadingCards() {
       `);
     }
   }
-  moviesGrid.innerHTML = `<div class="loading-grid">${cards.join('')}</div>`;
+  // Alohida .loading-grid wrapper YO'Q — to'g'ridan-to'g'ri
+  // .movies-grid ichiga (u allaqachon HTML da mavjud)
+  moviesGrid.innerHTML = cards.join('');
 }
 
 // =========================================================
@@ -375,7 +388,11 @@ async function loadMovies(search = '') {
     currentAbortController.abort();
     currentAbortController = null;
   }
-  if (!isFirstLoad) showLoading('Filmlar yuklanmoqda...');
+  if (!isFirstLoad) {
+    // Loading paytida ham grid struktura buzilmasligi uchun
+    // skeletonni GRID ICHIGA chizamiz (agar hali natija ko'rsatilmagan bo'lsa)
+    if (moviesGrid.children.length === 0) renderLoadingCards();
+  }
   currentAbortController = new AbortController();
   const signal = currentAbortController.signal;
   try {
@@ -388,7 +405,15 @@ async function loadMovies(search = '') {
     if (!data.success) throw new Error(data.message || 'Xatolik');
 
     allMovies = data.data || [];
-    renderMovies(allMovies);
+
+    // Agar backend qidiruvi natija bermasa, lekin local fuzzy
+    // moslik topsa — local natijalarni ko'rsatamiz (Konsert holati)
+    if (search && allMovies.length === 0) {
+      const localFallback = getSearchSuggestions(allMovies.length ? allMovies : [], search);
+      renderMovies(localFallback);
+    } else {
+      renderMovies(allMovies);
+    }
     isFirstLoad = false;
   } catch (error) {
     console.error('Yuklash xatosi:', error);
@@ -621,7 +646,7 @@ function closeModal() {
 }
 
 // =========================================================
-// QIDIRUV EVENTS — REAL-TIME (YOUTUBE KABI)
+// QIDIRUV EVENTS — REAL-TIME (YOUTUBE / UZMOVI KABI)
 // =========================================================
 
 searchInput.addEventListener('input', function(e) {
@@ -635,8 +660,6 @@ searchInput.addEventListener('input', function(e) {
     return;
   }
 
-  // Real-time: har bir harfda tezkor javob (debounce juda qisqa,
-  // YouTube'dagidek "yozayotganda taklif chiqadi" hissi uchun)
   searchTimeout = setTimeout(() => {
     showSuggestions(allMovies, query);
   }, 120);
@@ -649,27 +672,7 @@ searchInput.addEventListener('focus', function() {
   }
 });
 
-searchBtn.addEventListener('click', function() {
-  const query = searchInput.value.trim();
-  suggestionsContainer.classList.remove('active');
-  suggestionsContainer.innerHTML = '';
-  if (query.length > 0) {
-    // Local fuzzy natijalar bilan darhol ko'rsatish, keyin backendga so'rov
-    const localResults = getSearchSuggestions(allMovies, query);
-    if (localResults.length > 0) {
-      renderMovies(localResults);
-    }
-    loadMovies(query);
-  } else {
-    loadMovies('');
-  }
-});
-
-searchInput.addEventListener('keypress', function(e) {
-  if (e.key === 'Enter' && activeSuggestionIndex === -1) {
-    searchBtn.click();
-  }
-});
+searchBtn.addEventListener('click', runSearch);
 
 document.addEventListener('click', function(e) {
   if (!e.target.closest('.search-container') && !e.target.closest('.suggestions-container')) {
