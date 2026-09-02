@@ -1,11 +1,19 @@
 <!DOCTYPE html>
 <html lang="uz">
 <head>
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3610820986180696"
-     crossorigin="anonymous"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MovieHub - Kino va Seriallar</title>
+  
+  <!-- Preconnect va DNS prefetch -->
+  <link rel="preconnect" href="https://movieehubbackend.onrender.com" />
+  <link rel="dns-prefetch" href="https://movieehubbackend.onrender.com" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+  
+  <!-- Preload -->
+  <link rel="preload" as="image" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect fill='%23007aff' width='24' height='24'/></svg>" />
+  
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 </head>
@@ -24,14 +32,13 @@
           <i class="fas fa-film"></i>
           <span>MovieHub</span>
         </a>
-
-        <!-- Qidiruv qismi -->
+        
         <div class="search-container">
           <div class="search-wrapper">
-            <input
-              type="text"
-              id="searchInput"
-              placeholder="Qidirish..."
+            <input 
+              type="text" 
+              id="searchInput" 
+              placeholder="Qidirish..." 
               class="search-input"
               autocomplete="off"
             />
@@ -42,10 +49,9 @@
               </svg>
             </button>
           </div>
-          <!-- Takliflar konteyneri -->
           <div class="suggestions-container" id="suggestionsContainer"></div>
         </div>
-
+        
         <a href="admin.html" class="login-btn">
           <i class="fas fa-user-shield"></i>
           <span>Login</span>
@@ -83,6 +89,6 @@
     </div>
   </div>
 
-  <script src="script.js"></script>
+  <script src="script.js" defer></script>
 </body>
 </html>
