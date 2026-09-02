@@ -1,5 +1,5 @@
 // =========================================================
-// MOVIEHUB FRONTEND - AQLLI QIDIRUV (HARFLARNI SOLISHTIRISH)
+// MOVIEHUB FRONTEND - TO'LIQ (AQLLI QIDIRUV BILAN)
 // =========================================================
 
 const API_URL = 'https://movieehubbackend.onrender.com/api';
@@ -168,7 +168,7 @@ function stopVideo() {
 }
 
 // =========================================================
-// AQLLI QIDIRUV - HARFLARNI SOLISHTIRISH (FUZZY SEARCH)
+// AQLLI QIDIRUV - HARFLARNI SOLISHTIRISH (LOCAL)
 // =========================================================
 
 function getSearchSuggestions(query, movies) {
@@ -184,19 +184,15 @@ function getSearchSuggestions(query, movies) {
   );
   
   // 2. Harflarni solishtirish (fuzzy matching)
-  // Masalan: "xbib" -> "Khabib" ni topishi kerak
   const fuzzyMatches = movies.filter(m => {
     const name = m.nomi.toLowerCase();
-    let nameIndex = 0;
-    let queryIndex = 0;
-    let matches = 0;
+    let nameIndex = 0, queryIndex = 0, matches = 0;
     
-    // O'xshash harflar (C=K, S=sh, va hokazo)
     const similarChars = {
       'c': ['k', 's'],
       's': ['sh', 'z', 'c'],
       'z': ['s'],
-      'k': ['c', 'q', 'g'],
+      'k': ['c', 'q', 'g', 'x'],
       'q': ['k'],
       'g': ['k', 'j'],
       'j': ['g', 'i'],
@@ -220,34 +216,24 @@ function getSearchSuggestions(query, movies) {
       'l': ['r']
     };
     
-    // Har bir harfni solishtirish
     while (nameIndex < name.length && queryIndex < q.length) {
       const nameChar = name[nameIndex];
       const queryChar = q[queryIndex];
       
-      // 1. To'g'ridan-to'g'ri moslik
       if (nameChar === queryChar) {
         matches++;
         queryIndex++;
-      }
-      // 2. O'xshash harflar bilan moslik
-      else if (similarChars[nameChar] && similarChars[nameChar].includes(queryChar)) {
+      } else if (similarChars[nameChar] && similarChars[nameChar].includes(queryChar)) {
         matches++;
         queryIndex++;
-      }
-      else if (similarChars[queryChar] && similarChars[queryChar].includes(nameChar)) {
+      } else if (similarChars[queryChar] && similarChars[queryChar].includes(nameChar)) {
         matches++;
         queryIndex++;
-      }
-      // 3. Bir harf tashlab ketish (masalan: "Khabib" -> "xbib" da 'h' tashlab ketgan)
-      else {
-        // Qidiruvdagi 1 harfni tashlab ketish
+      } else {
         if (queryIndex < q.length - 1 && nameChar === q[queryIndex + 1]) {
           matches++;
           queryIndex += 2;
-        }
-        // Yoki nomdagi 1 harfni tashlab ketish
-        else {
+        } else {
           nameIndex++;
           continue;
         }
@@ -255,21 +241,10 @@ function getSearchSuggestions(query, movies) {
       nameIndex++;
     }
     
-    // 50% dan yuqori moslik bo'lsa
-    const matchPercent = matches / Math.max(q.length, name.length);
-    return matchPercent >= 0.5;
+    return matches / Math.max(q.length, name.length) >= 0.5;
   });
   
-  // 3. Birinchi harf bo'yicha moslik (agar 1-2 harf bo'lsa)
-  const firstCharMatches = movies.filter(m => {
-    if (q.length <= 2) {
-      return m.nomi.toLowerCase().startsWith(q);
-    }
-    return false;
-  });
-  
-  // Natijalarni birlashtirish (takrorlanmasin)
-  const allResults = [...exactMatches, ...fuzzyMatches, ...firstCharMatches];
+  const allResults = [...exactMatches, ...fuzzyMatches];
   const uniqueResults = [];
   const seenIds = new Set();
   
@@ -616,12 +591,11 @@ function closeModal() {
 }
 
 // =========================================================
-// QIDIRUV EVENTS
+// QIDIRUV EVENTS (Debounce bilan)
 // =========================================================
 
 const debouncedSearch = debounce((query) => {
   if (query.length > 0) {
-    // Qidiruvda backend orqali ham qidirish
     loadMovies(query);
   } else {
     loadMovies('');
