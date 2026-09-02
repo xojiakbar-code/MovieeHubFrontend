@@ -1,5 +1,5 @@
 // =========================================================
-// MOVIEHUB FRONTEND - TO'LIQ TUZATILGAN
+// MOVIEHUB FRONTEND - AQLLI QIDIRUV (HARFLARNI SOLISHTIRISH)
 // =========================================================
 
 const API_URL = 'https://movieehubbackend.onrender.com/api';
@@ -41,7 +41,7 @@ function debounce(func, wait) {
 }
 
 // =========================================================
-// LOADING - TUZATILGAN
+// LOADING
 // =========================================================
 
 function showLoading(msg = 'Yuklanmoqda...') {
@@ -54,7 +54,7 @@ function hideLoading() {
 }
 
 // =========================================================
-// SKELETON LOADING KARTOCHKALAR (VIDEOLAR O'RNIDA)
+// SKELETON LOADING KARTOCHKALAR
 // =========================================================
 
 function renderLoadingCards() {
@@ -83,81 +83,7 @@ function renderLoadingCards() {
       `);
     }
   }
-  // Gridni to'liq almashtirish - skeletonlar videolar o'rnida
   moviesGrid.innerHTML = `<div class="loading-grid">${cards.join('')}</div>`;
-}
-
-// =========================================================
-// FILMLARNI YUKLASH - TUZATILGAN
-// =========================================================
-
-async function loadMovies(search = '') {
-  // Avvalgi so'rovni bekor qilish
-  if (currentAbortController) {
-    currentAbortController.abort();
-    currentAbortController = null;
-  }
-  
-  // YUKLASH VAQTIDA - SKELETON KARTOCHKALAR (overlay emas!)
-  if (!isFirstLoad) {
-    renderLoadingCards(); // SKELETON - videolar o'rnida
-    // loading-overlay ni ko'rsatmaslik (faqat spinner emas)
-  }
-  
-  // Yangi AbortController
-  currentAbortController = new AbortController();
-  const signal = currentAbortController.signal;
-  
-  try {
-    const url = search ? `${API_URL}/movies/search?q=${encodeURIComponent(search)}` : `${API_URL}/movies`;
-    
-    const timeoutId = setTimeout(() => {
-      if (currentAbortController) {
-        currentAbortController.abort();
-        console.log('⏳ So\'rov vaqti tugadi (15s)');
-      }
-    }, 15000);
-    
-    const res = await fetch(url, { signal });
-    clearTimeout(timeoutId);
-    
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    
-    const data = await res.json();
-    if (!data.success) throw new Error(data.message || 'Xatolik');
-    
-    allMovies = data.data || [];
-    renderMovies(allMovies); // KELGAN MA'LUMOTLAR BILAN KARTOCHKALAR
-    isFirstLoad = false;
-    
-  } catch (error) {
-    console.error('Yuklash xatosi:', error);
-    
-    if (error.name === 'AbortError') {
-      if (!isFirstLoad) {
-        moviesGrid.innerHTML = `
-          <div style="text-align:center;color:var(--color-text-secondary);padding:40px;grid-column:1/-1;">
-            ⏳ So'rov bekor qilindi. Qayta urinib ko'ring.
-            <br />
-            <button onclick="loadMovies()" class="btn btn-primary" style="margin-top:10px;padding:8px 20px;border:none;border-radius:8px;background:var(--color-accent);color:#fff;cursor:pointer;">🔄 Qayta yuklash</button>
-          </div>
-        `;
-      }
-      return;
-    }
-    
-    moviesGrid.innerHTML = `
-      <div style="text-align:center;color:var(--color-danger);padding:40px;grid-column:1/-1;">
-        ❌ Xatolik: ${error.message}
-        <br />
-        <button onclick="loadMovies()" class="btn btn-primary" style="margin-top:10px;padding:8px 20px;border:none;border-radius:8px;background:var(--color-accent);color:#fff;cursor:pointer;">🔄 Qayta yuklash</button>
-      </div>
-    `;
-  }
-  
-  // Loading overlay ni yashirish (agar ko'rinayotgan bo'lsa)
-  hideLoading();
-  currentAbortController = null;
 }
 
 // =========================================================
@@ -242,7 +168,7 @@ function stopVideo() {
 }
 
 // =========================================================
-// AQLLI QIDIRUV
+// AQLLI QIDIRUV - HARFLARNI SOLISHTIRISH (FUZZY SEARCH)
 // =========================================================
 
 function getSearchSuggestions(query, movies) {
@@ -251,57 +177,99 @@ function getSearchSuggestions(query, movies) {
   const q = query.toLowerCase().trim();
   const results = [];
   
-  // 1. To'liq moslik
+  // 1. To'liq moslik (includes)
   const exactMatches = movies.filter(m => 
     m.nomi.toLowerCase().includes(q) || 
     m.janr.toLowerCase().includes(q)
   );
   
-  // 2. Harflarni solishtirish (fuzzy)
+  // 2. Harflarni solishtirish (fuzzy matching)
+  // Masalan: "xbib" -> "Khabib" ni topishi kerak
   const fuzzyMatches = movies.filter(m => {
     const name = m.nomi.toLowerCase();
-    let nameIndex = 0, queryIndex = 0, matches = 0;
+    let nameIndex = 0;
+    let queryIndex = 0;
+    let matches = 0;
     
-    // O'xshash harflar
+    // O'xshash harflar (C=K, S=sh, va hokazo)
     const similarChars = {
       'c': ['k', 's'],
-      's': ['sh', 'z'],
+      's': ['sh', 'z', 'c'],
       'z': ['s'],
-      'k': ['c', 'q'],
+      'k': ['c', 'q', 'g'],
       'q': ['k'],
-      'o': ['a'],
-      'a': ['o'],
-      'e': ['i'],
-      'i': ['e'],
+      'g': ['k', 'j'],
+      'j': ['g', 'i'],
+      'o': ['a', 'u'],
+      'a': ['o', 'e'],
+      'e': ['i', 'a'],
+      'i': ['e', 'y'],
       'y': ['i'],
-      'u': ['o']
+      'u': ['o'],
+      'h': ['x', 'g'],
+      'x': ['h', 'k'],
+      'b': ['p', 'v'],
+      'p': ['b'],
+      'v': ['b', 'w'],
+      'w': ['v'],
+      'd': ['t'],
+      't': ['d'],
+      'm': ['n'],
+      'n': ['m'],
+      'r': ['l'],
+      'l': ['r']
     };
     
+    // Har bir harfni solishtirish
     while (nameIndex < name.length && queryIndex < q.length) {
       const nameChar = name[nameIndex];
       const queryChar = q[queryIndex];
       
+      // 1. To'g'ridan-to'g'ri moslik
       if (nameChar === queryChar) {
         matches++;
         queryIndex++;
-      } else if (similarChars[nameChar] && similarChars[nameChar].includes(queryChar)) {
+      }
+      // 2. O'xshash harflar bilan moslik
+      else if (similarChars[nameChar] && similarChars[nameChar].includes(queryChar)) {
         matches++;
         queryIndex++;
-      } else if (similarChars[queryChar] && similarChars[queryChar].includes(nameChar)) {
+      }
+      else if (similarChars[queryChar] && similarChars[queryChar].includes(nameChar)) {
         matches++;
         queryIndex++;
-      } else {
-        nameIndex++;
-        continue;
+      }
+      // 3. Bir harf tashlab ketish (masalan: "Khabib" -> "xbib" da 'h' tashlab ketgan)
+      else {
+        // Qidiruvdagi 1 harfni tashlab ketish
+        if (queryIndex < q.length - 1 && nameChar === q[queryIndex + 1]) {
+          matches++;
+          queryIndex += 2;
+        }
+        // Yoki nomdagi 1 harfni tashlab ketish
+        else {
+          nameIndex++;
+          continue;
+        }
       }
       nameIndex++;
     }
     
-    return matches / q.length >= 0.5;
+    // 50% dan yuqori moslik bo'lsa
+    const matchPercent = matches / Math.max(q.length, name.length);
+    return matchPercent >= 0.5;
   });
   
-  // Natijalarni birlashtirish
-  const allResults = [...exactMatches, ...fuzzyMatches];
+  // 3. Birinchi harf bo'yicha moslik (agar 1-2 harf bo'lsa)
+  const firstCharMatches = movies.filter(m => {
+    if (q.length <= 2) {
+      return m.nomi.toLowerCase().startsWith(q);
+    }
+    return false;
+  });
+  
+  // Natijalarni birlashtirish (takrorlanmasin)
+  const allResults = [...exactMatches, ...fuzzyMatches, ...firstCharMatches];
   const uniqueResults = [];
   const seenIds = new Set();
   
@@ -326,7 +294,7 @@ const debouncedShowSuggestions = debounce((movies, query) => {
     return;
   }
   
-  const suggestions = getSearchSuggestions(movies, query);
+  const suggestions = getSearchSuggestions(query, movies);
   
   if (suggestions.length === 0) {
     suggestionsContainer.innerHTML = `
@@ -373,19 +341,16 @@ function selectSuggestion(movieId) {
 // =========================================================
 
 async function loadMovies(search = '') {
-  // Avvalgi so'rovni bekor qilish
   if (currentAbortController) {
     currentAbortController.abort();
     currentAbortController = null;
   }
   
-  // Yuklash vaqtida skeleton ko'rsatish
   if (!isFirstLoad) {
     renderLoadingCards();
     showLoading('Filmlar yuklanmoqda...');
   }
   
-  // Yangi AbortController
   currentAbortController = new AbortController();
   const signal = currentAbortController.signal;
   
@@ -651,11 +616,12 @@ function closeModal() {
 }
 
 // =========================================================
-// QIDIRUV EVENTS (Debounce bilan)
+// QIDIRUV EVENTS
 // =========================================================
 
 const debouncedSearch = debounce((query) => {
   if (query.length > 0) {
+    // Qidiruvda backend orqali ham qidirish
     loadMovies(query);
   } else {
     loadMovies('');
@@ -671,9 +637,11 @@ searchInput.addEventListener('input', function(e) {
     debouncedSearch('');
     return;
   }
+  // Takliflarni ko'rsatish (local)
   searchTimeout = setTimeout(() => {
     showSuggestions(allMovies, query);
   }, 300);
+  // Backend qidiruv (debounced)
   debouncedSearch(query);
 });
 
