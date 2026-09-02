@@ -41,7 +41,7 @@ function debounce(func, wait) {
 }
 
 // =========================================================
-// LOADING
+// LOADING - TUZATILGAN
 // =========================================================
 
 function showLoading(msg = 'Yuklanmoqda...') {
@@ -54,7 +54,7 @@ function hideLoading() {
 }
 
 // =========================================================
-// SKELETON LOADING KARTOCHKALAR
+// SKELETON LOADING KARTOCHKALAR (VIDEOLAR O'RNIDA)
 // =========================================================
 
 function renderLoadingCards() {
@@ -83,7 +83,81 @@ function renderLoadingCards() {
       `);
     }
   }
+  // Gridni to'liq almashtirish - skeletonlar videolar o'rnida
   moviesGrid.innerHTML = `<div class="loading-grid">${cards.join('')}</div>`;
+}
+
+// =========================================================
+// FILMLARNI YUKLASH - TUZATILGAN
+// =========================================================
+
+async function loadMovies(search = '') {
+  // Avvalgi so'rovni bekor qilish
+  if (currentAbortController) {
+    currentAbortController.abort();
+    currentAbortController = null;
+  }
+  
+  // YUKLASH VAQTIDA - SKELETON KARTOCHKALAR (overlay emas!)
+  if (!isFirstLoad) {
+    renderLoadingCards(); // SKELETON - videolar o'rnida
+    // loading-overlay ni ko'rsatmaslik (faqat spinner emas)
+  }
+  
+  // Yangi AbortController
+  currentAbortController = new AbortController();
+  const signal = currentAbortController.signal;
+  
+  try {
+    const url = search ? `${API_URL}/movies/search?q=${encodeURIComponent(search)}` : `${API_URL}/movies`;
+    
+    const timeoutId = setTimeout(() => {
+      if (currentAbortController) {
+        currentAbortController.abort();
+        console.log('⏳ So\'rov vaqti tugadi (15s)');
+      }
+    }, 15000);
+    
+    const res = await fetch(url, { signal });
+    clearTimeout(timeoutId);
+    
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message || 'Xatolik');
+    
+    allMovies = data.data || [];
+    renderMovies(allMovies); // KELGAN MA'LUMOTLAR BILAN KARTOCHKALAR
+    isFirstLoad = false;
+    
+  } catch (error) {
+    console.error('Yuklash xatosi:', error);
+    
+    if (error.name === 'AbortError') {
+      if (!isFirstLoad) {
+        moviesGrid.innerHTML = `
+          <div style="text-align:center;color:var(--color-text-secondary);padding:40px;grid-column:1/-1;">
+            ⏳ So'rov bekor qilindi. Qayta urinib ko'ring.
+            <br />
+            <button onclick="loadMovies()" class="btn btn-primary" style="margin-top:10px;padding:8px 20px;border:none;border-radius:8px;background:var(--color-accent);color:#fff;cursor:pointer;">🔄 Qayta yuklash</button>
+          </div>
+        `;
+      }
+      return;
+    }
+    
+    moviesGrid.innerHTML = `
+      <div style="text-align:center;color:var(--color-danger);padding:40px;grid-column:1/-1;">
+        ❌ Xatolik: ${error.message}
+        <br />
+        <button onclick="loadMovies()" class="btn btn-primary" style="margin-top:10px;padding:8px 20px;border:none;border-radius:8px;background:var(--color-accent);color:#fff;cursor:pointer;">🔄 Qayta yuklash</button>
+      </div>
+    `;
+  }
+  
+  // Loading overlay ni yashirish (agar ko'rinayotgan bo'lsa)
+  hideLoading();
+  currentAbortController = null;
 }
 
 // =========================================================
