@@ -1,5 +1,5 @@
 // =========================================================
-// MOVIEHUB FRONTEND - TO'LIQ (AQLLI QIDIRUV, HARFLARGA MOSLASHUVCHI)
+// MOVIEHUB FRONTEND - OPTIMALLASHTIRILGAN
 // =========================================================
 
 const API_URL = 'https://movieehubbackend.onrender.com/api';
@@ -26,13 +26,22 @@ let isFirstLoad = true;
 let currentAbortController = null;
 let currentVideoPlayer = null;
 let searchTimeout = null;
-let allMovies = [];       // backenddan kelgan TO'LIQ ro'yxat (bo'sh qidiruv bilan yuklangan)
-let activeSuggestionIndex = -1;
+let allMovies = [];
+
+// =========================================================
+// DEBOUNCE (Qidiruv uchun)
+// =========================================================
+function debounce(func, wait) {
+  let timeout;
+  return function(...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(this, args), wait);
+  };
+}
 
 // =========================================================
 // LOADING
 // =========================================================
-
 function showLoading(msg = 'Yuklanmoqda...') {
   loadingText.textContent = msg;
   loadingOverlay.classList.add('active');
@@ -45,7 +54,6 @@ function hideLoading() {
 // =========================================================
 // DEFAULT IMAGE
 // =========================================================
-
 function getDefaultImage() {
   return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`
     <svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400">
@@ -60,7 +68,6 @@ function getDefaultImage() {
 // =========================================================
 // URL FIX
 // =========================================================
-
 function fixImageUrl(url) {
   if (!url) return getDefaultImage();
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
@@ -83,7 +90,6 @@ function fixVideoUrl(url) {
 // =========================================================
 // YOUTUBE
 // =========================================================
-
 function isYouTubeUrl(url) {
   if (!url) return false;
   return url.includes('youtube.com') || url.includes('youtu.be');
@@ -107,7 +113,6 @@ function getYouTubeEmbedUrl(url) {
 // =========================================================
 // VIDEO TO'XTATISH
 // =========================================================
-
 function stopVideo() {
   if (currentVideoPlayer) {
     try { currentVideoPlayer.pause(); currentVideoPlayer.currentTime = 0; } catch(e) {}
@@ -124,155 +129,90 @@ function stopVideo() {
 }
 
 // =========================================================
-// AQLLI QIDIRUV — HARFLARGA MOSLASHUVCHI (FUZZY + SUBSEQUENCE)
+// AQLLI QIDIRUV
 // =========================================================
-// "Conset"/"Consert" -> "Konsert" ni topadi:
-//  1) Harflarni sinflarga normallashtiradi (c/k/q, s/z, o/a, ...)
-//  2) Subsequence matching — orada boshqa harflar bo'lsa ham
-//     ketma-ket mos kelgan harflarni hisoblaydi.
-
-const CHAR_CLASS_MAP = {
-  'k': 'k', 'c': 'k', 'q': 'k',
-  's': 's', 'z': 's',
-  'o': 'o', 'a': 'o',
-  'e': 'e', 'i': 'e', 'y': 'e',
-  'u': 'u', 'v': 'v', 'w': 'v',
-  'g': 'g', "g'": 'g', 'gʻ': 'g', 'ğ': 'g',
-  'x': 'x', 'h': 'x'
-};
-
-function normalizeChar(ch) {
-  return CHAR_CLASS_MAP[ch] || ch;
-}
-
-function normalizeString(str) {
-  return String(str)
-    .toLowerCase()
-    .replace(/[’'ʻ`]/g, '')
-    .split('')
-    .map(normalizeChar)
-    .join('');
-}
-
-function fuzzyScore(query, name) {
-  const q = normalizeString(query.trim());
-  const n = normalizeString(name);
-
-  if (!q) return 0;
-
-  if (n.includes(q)) {
-    return 1;
-  }
-
-  let qi = 0;
-  let firstMatch = -1;
-  let lastMatch = -1;
-  let matchedCount = 0;
-
-  for (let ni = 0; ni < n.length && qi < q.length; ni++) {
-    if (n[ni] === q[qi]) {
-      if (firstMatch === -1) firstMatch = ni;
-      lastMatch = ni;
-      matchedCount++;
-      qi++;
+function getSearchSuggestions(query, movies) {
+  if (!query || query.length < 1) return [];
+  
+  const q = query.toLowerCase().trim();
+  const results = [];
+  
+  const exactMatches = movies.filter(m => 
+    m.nomi.toLowerCase().includes(q) || 
+    m.janr.toLowerCase().includes(q)
+  );
+  
+  const fuzzyMatches = movies.filter(m => {
+    const name = m.nomi.toLowerCase();
+    let nameIndex = 0, queryIndex = 0, matches = 0;
+    while (nameIndex < name.length && queryIndex < q.length) {
+      if (name[nameIndex] === q[queryIndex]) {
+        matches++;
+        queryIndex++;
+      }
+      nameIndex++;
+    }
+    return matches / q.length >= 0.6;
+  });
+  
+  const allResults = [...exactMatches, ...fuzzyMatches];
+  const uniqueResults = [];
+  const seenIds = new Set();
+  
+  for (const movie of allResults) {
+    if (!seenIds.has(movie._id)) {
+      seenIds.add(movie._id);
+      uniqueResults.push(movie);
     }
   }
-
-  const coverage = matchedCount / q.length;
-
-  if (matchedCount === 0) return 0;
-
-  if (q.length <= 2) {
-    return n.startsWith(q) ? 0.9 : (coverage >= 1 ? 0.5 : 0);
-  }
-
-  if (coverage < 0.55) return 0;
-
-  const span = lastMatch - firstMatch + 1;
-  const density = q.length / span;
-
-  return 0.3 + coverage * 0.4 + density * 0.3;
+  
+  return uniqueResults;
 }
 
-function getSearchSuggestions(movies, query) {
-  if (!query || query.length < 1) return [];
-
-  const q = query.trim();
-  if (!q) return [];
-
-  const scored = movies.map(m => {
-    const nameScore = fuzzyScore(q, m.nomi || '');
-    const genreScore = fuzzyScore(q, m.janr || '') * 0.6;
-    const score = Math.max(nameScore, genreScore);
-    return { movie: m, score };
-  });
-
-  return scored
-    .filter(x => x.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .map(x => x.movie);
-}
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-function highlightMatch(text, query) {
-  const nText = normalizeString(text);
-  const nQuery = normalizeString(query.trim());
-  const idx = nText.indexOf(nQuery);
-  if (idx === -1 || !nQuery) return escapeHtml(text);
-
-  const before = text.slice(0, idx);
-  const match = text.slice(idx, idx + nQuery.length);
-  const after = text.slice(idx + nQuery.length);
-  return `${escapeHtml(before)}<mark style="background:var(--color-accent);color:#fff;border-radius:3px;padding:0 2px;">${escapeHtml(match)}</mark>${escapeHtml(after)}`;
-}
-
-function showSuggestions(movies, query) {
-  activeSuggestionIndex = -1;
-
+// =========================================================
+// TAKLIFLARNI KO'RSATISH (Debounce bilan)
+// =========================================================
+const debouncedShowSuggestions = debounce((movies, query) => {
   if (!query || query.length < 1) {
     suggestionsContainer.classList.remove('active');
     suggestionsContainer.innerHTML = '';
     return;
   }
-
+  
   const suggestions = getSearchSuggestions(movies, query);
-
+  
   if (suggestions.length === 0) {
     suggestionsContainer.innerHTML = `
       <div class="suggestion-item no-result">
-        <span>🔍 Natija topilmadi: "${escapeHtml(query)}"</span>
+        <span>🔍 Natija topilmadi: "${query}"</span>
       </div>
     `;
     suggestionsContainer.classList.add('active');
     return;
   }
-
-  const topSuggestions = suggestions.slice(0, 6);
-
-  suggestionsContainer.innerHTML = topSuggestions.map((m, i) => {
+  
+  const topSuggestions = suggestions.slice(0, 5);
+  
+  suggestionsContainer.innerHTML = topSuggestions.map(m => {
     const imgUrl = fixImageUrl(m.rasm);
-    const titleHtml = highlightMatch(m.nomi, query);
     return `
-      <div class="suggestion-item" data-index="${i}" onclick="selectSuggestion('${m._id}')">
+      <div class="suggestion-item" onclick="selectSuggestion('${m._id}')">
         <div class="suggestion-poster">
-          <img src="${imgUrl}" alt="${escapeHtml(m.nomi)}" onerror="this.src='${getDefaultImage()}'" />
+          <img src="${imgUrl}" alt="${m.nomi}" loading="lazy" onerror="this.src='${getDefaultImage()}'" />
         </div>
         <div class="suggestion-info">
-          <div class="suggestion-title">${titleHtml}</div>
+          <div class="suggestion-title">${m.nomi}</div>
           <div class="suggestion-meta">${m.yili} • ${m.janr}</div>
         </div>
       </div>
     `;
   }).join('');
-
+  
   suggestionsContainer.classList.add('active');
+}, 300);
+
+function showSuggestions(movies, query) {
+  debouncedShowSuggestions(movies, query);
 }
 
 function selectSuggestion(movieId) {
@@ -281,123 +221,9 @@ function selectSuggestion(movieId) {
   openMovie(movieId);
 }
 
-function updateActiveSuggestion(items) {
-  items.forEach((el, i) => {
-    el.classList.toggle('active-suggestion', i === activeSuggestionIndex);
-  });
-  if (activeSuggestionIndex >= 0 && items[activeSuggestionIndex]) {
-    items[activeSuggestionIndex].scrollIntoView({ block: 'nearest' });
-  }
-}
-
-searchInput.addEventListener('keydown', function(e) {
-  const items = Array.from(suggestionsContainer.querySelectorAll('.suggestion-item:not(.no-result)'));
-
-  if (e.key === 'Enter') {
-    if (suggestionsContainer.classList.contains('active') && activeSuggestionIndex >= 0 && items[activeSuggestionIndex]) {
-      e.preventDefault();
-      items[activeSuggestionIndex].click();
-      return;
-    }
-    e.preventDefault();
-    runSearch();
-    return;
-  }
-
-  if (!suggestionsContainer.classList.contains('active') || items.length === 0) return;
-
-  if (e.key === 'ArrowDown') {
-    e.preventDefault();
-    activeSuggestionIndex = (activeSuggestionIndex + 1) % items.length;
-    updateActiveSuggestion(items);
-  } else if (e.key === 'ArrowUp') {
-    e.preventDefault();
-    activeSuggestionIndex = (activeSuggestionIndex - 1 + items.length) % items.length;
-    updateActiveSuggestion(items);
-  } else if (e.key === 'Escape') {
-    suggestionsContainer.classList.remove('active');
-    suggestionsContainer.innerHTML = '';
-  }
-});
-
 // =========================================================
-// ENTER / QIDIRUV TUGMASI BOSILGANDA — TUZATILDI
+// LOADING KARTOCHKALAR
 // =========================================================
-// MUAMMO EDI: backendga so'rov ketib, backend bo'sh natija
-// qaytarsa, u local fuzzy natijalarni "topilmadi" bilan
-// bosib ketardi. Endi: local fuzzy natija topilsa, backend
-// javobi bo'sh bo'lganda ham O'SHA natija grid'da qoladi.
-
-function runSearch() {
-  const query = searchInput.value.trim();
-  suggestionsContainer.classList.remove('active');
-  suggestionsContainer.innerHTML = '';
-
-  if (query.length === 0) {
-    loadMovies('');
-    return;
-  }
-
-  // 1) Darhol LOCAL fuzzy natijalarni ko'rsatish
-  //    (allMovies — bo'sh so'rov bilan yuklangan TO'LIQ ro'yxat)
-  const localResults = getSearchSuggestions(allMovies, query);
-
-  if (localResults.length > 0) {
-    renderMovies(localResults);
-  } else {
-    renderLoadingCards();
-  }
-
-  // 2) Backendga ham so'rov yuboramiz, lekin natijani faqat
-  //    backend NATIJA BERGANDA almashtiramiz — bo'sh javob
-  //    local natijalarni o'chirmaydi.
-  searchOnServer(query, localResults);
-}
-
-async function searchOnServer(query, fallbackResults) {
-  if (currentAbortController) {
-    currentAbortController.abort();
-    currentAbortController = null;
-  }
-  currentAbortController = new AbortController();
-  const signal = currentAbortController.signal;
-
-  try {
-    const timeoutId = setTimeout(() => { if (currentAbortController) currentAbortController.abort(); }, 10000);
-    const res = await fetch(`${API_URL}/movies/search?q=${encodeURIComponent(query)}`, { signal });
-    clearTimeout(timeoutId);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    if (!data.success) throw new Error(data.message || 'Xatolik');
-
-    const serverResults = data.data || [];
-
-    if (serverResults.length > 0) {
-      // Backend natija topsa — uni ko'rsatamiz (aniqroq bo'lishi mumkin)
-      renderMovies(serverResults);
-    } else if (fallbackResults.length > 0) {
-      // Backend bo'sh qaytardi, lekin LOCAL fuzzy natija bor edi —
-      // O'SHANI saqlab qolamiz, "topilmadi" ko'rsatmaymiz
-      renderMovies(fallbackResults);
-    } else {
-      // Ikkalasida ham natija yo'q — endi "topilmadi" to'g'ri
-      renderMovies([]);
-    }
-  } catch (error) {
-    if (error.name === 'AbortError') return;
-    console.error('Qidiruv xatosi:', error);
-    // Xatolik bo'lsa ham, local natijalar bo'lsa ko'rsatishda davom etamiz
-    if (fallbackResults.length > 0) {
-      renderMovies(fallbackResults);
-    }
-  }
-  currentAbortController = null;
-}
-
-// =========================================================
-// LOADING KARTOCHKALAR — .movies-grid ICHIGA to'g'ridan-to'g'ri
-// =========================================================
-
 function renderLoadingCards() {
   const cards = [];
   for (let i = 0; i < 8; i++) {
@@ -424,21 +250,18 @@ function renderLoadingCards() {
       `);
     }
   }
-  moviesGrid.innerHTML = cards.join('');
+  moviesGrid.innerHTML = `<div class="loading-grid">${cards.join('')}</div>`;
 }
 
 // =========================================================
-// FILMLARNI YUKLASH (bosh sahifa / bo'sh qidiruv)
+// FILMLARNI YUKLASH
 // =========================================================
-
 async function loadMovies(search = '') {
   if (currentAbortController) {
     currentAbortController.abort();
     currentAbortController = null;
   }
-  if (!isFirstLoad && moviesGrid.children.length === 0) {
-    renderLoadingCards();
-  }
+  if (!isFirstLoad) showLoading('Filmlar yuklanmoqda...');
   currentAbortController = new AbortController();
   const signal = currentAbortController.signal;
   try {
@@ -449,16 +272,9 @@ async function loadMovies(search = '') {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     if (!data.success) throw new Error(data.message || 'Xatolik');
-
-    const results = data.data || [];
-
-    // Faqat bo'sh qidiruv (bosh sahifa yuklanishi) allMovies'ni
-    // TO'LIQ ro'yxat sifatida saqlaydi — shu fuzzy qidiruv uchun ishlatiladi
-    if (!search) {
-      allMovies = results;
-    }
-
-    renderMovies(results);
+    
+    allMovies = data.data || [];
+    renderMovies(allMovies);
     isFirstLoad = false;
   } catch (error) {
     console.error('Yuklash xatosi:', error);
@@ -483,7 +299,6 @@ async function loadMovies(search = '') {
 // =========================================================
 // RENDER MOVIES
 // =========================================================
-
 function renderMovies(movies) {
   if (!movies || movies.length === 0) {
     moviesGrid.innerHTML = `
@@ -495,20 +310,20 @@ function renderMovies(movies) {
     `;
     return;
   }
-
+  
   const defaultImg = getDefaultImage();
-
+  
   moviesGrid.innerHTML = movies.map((m, index) => {
     const imgUrl = fixImageUrl(m.rasm);
     const isWide = (index % 3 === 0);
     const cardClass = isWide ? 'movie-card-wide' : 'movie-card';
-
+    
     return `
       <div class="${cardClass}" onclick="openMovie('${m._id}')">
         <div class="poster-wrap">
-          <img
-            src="${imgUrl}"
-            alt="${escapeHtml(m.nomi)}"
+          <img 
+            src="${imgUrl}" 
+            alt="${m.nomi}" 
             class="movie-poster"
             loading="lazy"
             onerror="this.onerror=null; this.src='${defaultImg}'"
@@ -516,13 +331,13 @@ function renderMovies(movies) {
         </div>
         <div class="movie-info">
           <div>
-            <div class="movie-title">${escapeHtml(m.nomi)}</div>
-            ${isWide ? `<div class="movie-genre">${escapeHtml(m.janr || '')}</div>` : ''}
+            <div class="movie-title">${m.nomi}</div>
+            ${isWide ? `<div class="movie-genre">${m.janr || ''}</div>` : ''}
           </div>
           <div class="movie-meta">
             <span>${m.yili}</span>
             <span>${m.turi === 'film' ? '🎬' : '📺'}</span>
-            ${!isWide ? `<span>${escapeHtml(m.janr || '')}</span>` : ''}
+            ${!isWide ? `<span>${m.janr || ''}</span>` : ''}
           </div>
         </div>
       </div>
@@ -533,7 +348,6 @@ function renderMovies(movies) {
 // =========================================================
 // FILMNI OCHISH
 // =========================================================
-
 async function openMovie(id) {
   showLoading('Film yuklanmoqda...');
   try {
@@ -566,7 +380,6 @@ async function openMovie(id) {
 // =========================================================
 // SHOW DETAILS
 // =========================================================
-
 function showDetails(m) {
   const defaultImg = getDefaultImage();
   const posterUrl = fixImageUrl(m.rasm);
@@ -613,13 +426,13 @@ function showDetails(m) {
     <div class="modal-movie-detail">
       <div class="modal-left">
         <div class="modal-poster-container">
-          <img src="${posterUrl}" alt="${escapeHtml(m.nomi)}" class="modal-poster" onerror="this.onerror=null; this.src='${defaultImg}'" />
+          <img src="${posterUrl}" alt="${m.nomi}" class="modal-poster" onerror="this.onerror=null; this.src='${defaultImg}'" />
         </div>
         ${qismlarHtml}
       </div>
       <div class="modal-right">
         ${videoHtml}
-        <h2>${escapeHtml(m.nomi)}</h2>
+        <h2>${m.nomi}</h2>
         <div class="movie-meta">
           <span>${m.turi === 'film' ? '🎬 Film' : '📺 Serial'}</span>
           <span>${m.yili}</span>
@@ -638,7 +451,6 @@ function showDetails(m) {
 // =========================================================
 // PLAY QISM
 // =========================================================
-
 function playQism(index) {
   if (!currentMovie) return;
   if (!currentMovie.qismlar || currentMovie.qismlar.length === 0) return;
@@ -675,7 +487,6 @@ function playQism(index) {
 // =========================================================
 // MODAL YOPISH
 // =========================================================
-
 function closeModal() {
   stopVideo();
   const videoContainer = document.querySelector('.modal-video');
@@ -691,33 +502,45 @@ function closeModal() {
 }
 
 // =========================================================
-// QIDIRUV EVENTS — REAL-TIME (YOUTUBE / UZMOVI KABI)
+// QIDIRUV EVENTS (Debounce bilan)
 // =========================================================
+const debouncedSearch = debounce((query) => {
+  if (query.length > 0) {
+    loadMovies(query);
+  } else {
+    loadMovies('');
+  }
+}, 500);
 
 searchInput.addEventListener('input', function(e) {
-  const query = this.value;
+  const query = this.value.trim();
   if (searchTimeout) clearTimeout(searchTimeout);
-
-  if (query.trim().length === 0) {
+  if (query.length === 0) {
     suggestionsContainer.classList.remove('active');
     suggestionsContainer.innerHTML = '';
-    loadMovies('');
+    debouncedSearch('');
     return;
   }
-
   searchTimeout = setTimeout(() => {
     showSuggestions(allMovies, query);
-  }, 120);
+  }, 300);
+  debouncedSearch(query);
 });
 
-searchInput.addEventListener('focus', function() {
-  const query = this.value;
-  if (query.trim().length > 0) {
-    showSuggestions(allMovies, query);
+searchBtn.addEventListener('click', function() {
+  const query = searchInput.value.trim();
+  suggestionsContainer.classList.remove('active');
+  suggestionsContainer.innerHTML = '';
+  if (query.length > 0) {
+    loadMovies(query);
+  } else {
+    loadMovies('');
   }
 });
 
-searchBtn.addEventListener('click', runSearch);
+searchInput.addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') searchBtn.click();
+});
 
 document.addEventListener('click', function(e) {
   if (!e.target.closest('.search-container') && !e.target.closest('.suggestions-container')) {
@@ -729,7 +552,6 @@ document.addEventListener('click', function(e) {
 // =========================================================
 // EVENTS
 // =========================================================
-
 ageYes.addEventListener('click', () => { ageModal.classList.remove('active'); showDetails(currentMovie); });
 ageNo.addEventListener('click', closeModal);
 modalClose.addEventListener('click', closeModal);
@@ -738,7 +560,6 @@ movieModal.addEventListener('click', (e) => { if (e.target === movieModal) close
 // =========================================================
 // LOAD
 // =========================================================
-
 document.addEventListener('DOMContentLoaded', () => {
   renderLoadingCards();
   setTimeout(() => loadMovies(), 100);
