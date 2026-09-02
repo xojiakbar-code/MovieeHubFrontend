@@ -1,5 +1,5 @@
 // =========================================================
-// MOVIEHUB FRONTEND - OPTIMALLASHTIRILGAN
+// MOVIEHUB FRONTEND - TUZATILGAN (AbortError)
 // =========================================================
 
 const API_URL = 'https://movieehubbackend.onrender.com/api';
@@ -29,7 +29,7 @@ let searchTimeout = null;
 let allMovies = [];
 
 // =========================================================
-// DEBOUNCE (Qidiruv uchun)
+// DEBOUNCE
 // =========================================================
 function debounce(func, wait) {
   let timeout;
@@ -170,7 +170,7 @@ function getSearchSuggestions(query, movies) {
 }
 
 // =========================================================
-// TAKLIFLARNI KO'RSATISH (Debounce bilan)
+// TAKLIFLARNI KO'RSATISH
 // =========================================================
 const debouncedShowSuggestions = debounce((movies, query) => {
   if (!query || query.length < 1) {
@@ -254,36 +254,64 @@ function renderLoadingCards() {
 }
 
 // =========================================================
-// FILMLARNI YUKLASH
+// FILMLARNI YUKLASH - TUZATILGAN
 // =========================================================
 async function loadMovies(search = '') {
+  // Avvalgi so'rovni bekor qilish
   if (currentAbortController) {
     currentAbortController.abort();
     currentAbortController = null;
   }
+  
   if (!isFirstLoad) showLoading('Filmlar yuklanmoqda...');
+  
+  // Yangi AbortController yaratish
   currentAbortController = new AbortController();
   const signal = currentAbortController.signal;
+  
   try {
     const url = search ? `${API_URL}/movies/search?q=${encodeURIComponent(search)}` : `${API_URL}/movies`;
-    const timeoutId = setTimeout(() => { if (currentAbortController) currentAbortController.abort(); }, 10000);
+    
+    // Timeout - 15 soniya (uzaytirildi)
+    const timeoutId = setTimeout(() => {
+      if (currentAbortController) {
+        currentAbortController.abort();
+        console.log('⏳ So\'rov vaqti tugadi (15s)');
+      }
+    }, 15000);
+    
     const res = await fetch(url, { signal });
     clearTimeout(timeoutId);
+    
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    
     const data = await res.json();
     if (!data.success) throw new Error(data.message || 'Xatolik');
     
     allMovies = data.data || [];
     renderMovies(allMovies);
     isFirstLoad = false;
+    
   } catch (error) {
     console.error('Yuklash xatosi:', error);
+    
+    // AbortError ni alohida ishlov berish
     if (error.name === 'AbortError') {
+      // Agar so'rov bekor qilingan bo'lsa, xatolikni ko'rsatmaslik
+      // lekin foydalanuvchiga xabar berish
       if (!isFirstLoad) {
-        moviesGrid.innerHTML = `<div style="text-align:center;color:var(--color-text-secondary);padding:40px;grid-column:1/-1;">⏳ So'rov bekor qilindi</div>`;
+        moviesGrid.innerHTML = `
+          <div style="text-align:center;color:var(--color-text-secondary);padding:40px;grid-column:1/-1;">
+            ⏳ So'rov bekor qilindi. Qayta urinib ko'ring.
+            <br />
+            <button onclick="loadMovies()" class="btn btn-primary" style="margin-top:10px;padding:8px 20px;border:none;border-radius:8px;background:var(--color-accent);color:#fff;cursor:pointer;">🔄 Qayta yuklash</button>
+          </div>
+        `;
       }
       return;
     }
+    
+    // Boshqa xatolar
     moviesGrid.innerHTML = `
       <div style="text-align:center;color:var(--color-danger);padding:40px;grid-column:1/-1;">
         ❌ Xatolik: ${error.message}
@@ -292,6 +320,7 @@ async function loadMovies(search = '') {
       </div>
     `;
   }
+  
   hideLoading();
   currentAbortController = null;
 }
@@ -352,7 +381,7 @@ async function openMovie(id) {
   showLoading('Film yuklanmoqda...');
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
     const res = await fetch(`${API_URL}/movies/${id}`, { signal: controller.signal });
     clearTimeout(timeoutId);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
