@@ -1,5 +1,5 @@
 // =========================================================
-// MOVIEHUB FRONTEND - TUZATILGAN (AbortError)
+// MOVIEHUB FRONTEND - TO'LIQ TUZATILGAN
 // =========================================================
 
 const API_URL = 'https://movieehubbackend.onrender.com/api';
@@ -31,6 +31,7 @@ let allMovies = [];
 // =========================================================
 // DEBOUNCE
 // =========================================================
+
 function debounce(func, wait) {
   let timeout;
   return function(...args) {
@@ -42,6 +43,7 @@ function debounce(func, wait) {
 // =========================================================
 // LOADING
 // =========================================================
+
 function showLoading(msg = 'Yuklanmoqda...') {
   loadingText.textContent = msg;
   loadingOverlay.classList.add('active');
@@ -52,8 +54,42 @@ function hideLoading() {
 }
 
 // =========================================================
+// SKELETON LOADING KARTOCHKALAR
+// =========================================================
+
+function renderLoadingCards() {
+  const cards = [];
+  for (let i = 0; i < 8; i++) {
+    const isWide = (i % 3 === 0);
+    if (isWide) {
+      cards.push(`
+        <div class="loading-card-wide">
+          <div class="poster-placeholder"></div>
+          <div class="info-placeholder">
+            <div class="title-placeholder"></div>
+            <div class="meta-placeholder"></div>
+          </div>
+        </div>
+      `);
+    } else {
+      cards.push(`
+        <div class="loading-card">
+          <div class="poster-placeholder"></div>
+          <div class="info-placeholder">
+            <div class="title-placeholder"></div>
+            <div class="meta-placeholder"></div>
+          </div>
+        </div>
+      `);
+    }
+  }
+  moviesGrid.innerHTML = `<div class="loading-grid">${cards.join('')}</div>`;
+}
+
+// =========================================================
 // DEFAULT IMAGE
 // =========================================================
+
 function getDefaultImage() {
   return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`
     <svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400">
@@ -68,6 +104,7 @@ function getDefaultImage() {
 // =========================================================
 // URL FIX
 // =========================================================
+
 function fixImageUrl(url) {
   if (!url) return getDefaultImage();
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
@@ -90,6 +127,7 @@ function fixVideoUrl(url) {
 // =========================================================
 // YOUTUBE
 // =========================================================
+
 function isYouTubeUrl(url) {
   if (!url) return false;
   return url.includes('youtube.com') || url.includes('youtu.be');
@@ -113,6 +151,7 @@ function getYouTubeEmbedUrl(url) {
 // =========================================================
 // VIDEO TO'XTATISH
 // =========================================================
+
 function stopVideo() {
   if (currentVideoPlayer) {
     try { currentVideoPlayer.pause(); currentVideoPlayer.currentTime = 0; } catch(e) {}
@@ -131,30 +170,63 @@ function stopVideo() {
 // =========================================================
 // AQLLI QIDIRUV
 // =========================================================
+
 function getSearchSuggestions(query, movies) {
   if (!query || query.length < 1) return [];
   
   const q = query.toLowerCase().trim();
   const results = [];
   
+  // 1. To'liq moslik
   const exactMatches = movies.filter(m => 
     m.nomi.toLowerCase().includes(q) || 
     m.janr.toLowerCase().includes(q)
   );
   
+  // 2. Harflarni solishtirish (fuzzy)
   const fuzzyMatches = movies.filter(m => {
     const name = m.nomi.toLowerCase();
     let nameIndex = 0, queryIndex = 0, matches = 0;
+    
+    // O'xshash harflar
+    const similarChars = {
+      'c': ['k', 's'],
+      's': ['sh', 'z'],
+      'z': ['s'],
+      'k': ['c', 'q'],
+      'q': ['k'],
+      'o': ['a'],
+      'a': ['o'],
+      'e': ['i'],
+      'i': ['e'],
+      'y': ['i'],
+      'u': ['o']
+    };
+    
     while (nameIndex < name.length && queryIndex < q.length) {
-      if (name[nameIndex] === q[queryIndex]) {
+      const nameChar = name[nameIndex];
+      const queryChar = q[queryIndex];
+      
+      if (nameChar === queryChar) {
         matches++;
         queryIndex++;
+      } else if (similarChars[nameChar] && similarChars[nameChar].includes(queryChar)) {
+        matches++;
+        queryIndex++;
+      } else if (similarChars[queryChar] && similarChars[queryChar].includes(nameChar)) {
+        matches++;
+        queryIndex++;
+      } else {
+        nameIndex++;
+        continue;
       }
       nameIndex++;
     }
-    return matches / q.length >= 0.6;
+    
+    return matches / q.length >= 0.5;
   });
   
+  // Natijalarni birlashtirish
   const allResults = [...exactMatches, ...fuzzyMatches];
   const uniqueResults = [];
   const seenIds = new Set();
@@ -172,6 +244,7 @@ function getSearchSuggestions(query, movies) {
 // =========================================================
 // TAKLIFLARNI KO'RSATISH
 // =========================================================
+
 const debouncedShowSuggestions = debounce((movies, query) => {
   if (!query || query.length < 1) {
     suggestionsContainer.classList.remove('active');
@@ -222,40 +295,9 @@ function selectSuggestion(movieId) {
 }
 
 // =========================================================
-// LOADING KARTOCHKALAR
+// FILMLARNI YUKLASH
 // =========================================================
-function renderLoadingCards() {
-  const cards = [];
-  for (let i = 0; i < 8; i++) {
-    const isWide = (i % 3 === 0);
-    if (isWide) {
-      cards.push(`
-        <div class="loading-card-wide">
-          <div class="poster-placeholder"></div>
-          <div class="info-placeholder">
-            <div class="title-placeholder"></div>
-            <div class="meta-placeholder"></div>
-          </div>
-        </div>
-      `);
-    } else {
-      cards.push(`
-        <div class="loading-card">
-          <div class="poster-placeholder"></div>
-          <div class="info-placeholder">
-            <div class="title-placeholder"></div>
-            <div class="meta-placeholder"></div>
-          </div>
-        </div>
-      `);
-    }
-  }
-  moviesGrid.innerHTML = `<div class="loading-grid">${cards.join('')}</div>`;
-}
 
-// =========================================================
-// FILMLARNI YUKLASH - TUZATILGAN
-// =========================================================
 async function loadMovies(search = '') {
   // Avvalgi so'rovni bekor qilish
   if (currentAbortController) {
@@ -263,16 +305,19 @@ async function loadMovies(search = '') {
     currentAbortController = null;
   }
   
-  if (!isFirstLoad) showLoading('Filmlar yuklanmoqda...');
+  // Yuklash vaqtida skeleton ko'rsatish
+  if (!isFirstLoad) {
+    renderLoadingCards();
+    showLoading('Filmlar yuklanmoqda...');
+  }
   
-  // Yangi AbortController yaratish
+  // Yangi AbortController
   currentAbortController = new AbortController();
   const signal = currentAbortController.signal;
   
   try {
     const url = search ? `${API_URL}/movies/search?q=${encodeURIComponent(search)}` : `${API_URL}/movies`;
     
-    // Timeout - 15 soniya (uzaytirildi)
     const timeoutId = setTimeout(() => {
       if (currentAbortController) {
         currentAbortController.abort();
@@ -295,10 +340,7 @@ async function loadMovies(search = '') {
   } catch (error) {
     console.error('Yuklash xatosi:', error);
     
-    // AbortError ni alohida ishlov berish
     if (error.name === 'AbortError') {
-      // Agar so'rov bekor qilingan bo'lsa, xatolikni ko'rsatmaslik
-      // lekin foydalanuvchiga xabar berish
       if (!isFirstLoad) {
         moviesGrid.innerHTML = `
           <div style="text-align:center;color:var(--color-text-secondary);padding:40px;grid-column:1/-1;">
@@ -311,7 +353,6 @@ async function loadMovies(search = '') {
       return;
     }
     
-    // Boshqa xatolar
     moviesGrid.innerHTML = `
       <div style="text-align:center;color:var(--color-danger);padding:40px;grid-column:1/-1;">
         ❌ Xatolik: ${error.message}
@@ -328,6 +369,7 @@ async function loadMovies(search = '') {
 // =========================================================
 // RENDER MOVIES
 // =========================================================
+
 function renderMovies(movies) {
   if (!movies || movies.length === 0) {
     moviesGrid.innerHTML = `
@@ -377,6 +419,7 @@ function renderMovies(movies) {
 // =========================================================
 // FILMNI OCHISH
 // =========================================================
+
 async function openMovie(id) {
   showLoading('Film yuklanmoqda...');
   try {
@@ -409,6 +452,7 @@ async function openMovie(id) {
 // =========================================================
 // SHOW DETAILS
 // =========================================================
+
 function showDetails(m) {
   const defaultImg = getDefaultImage();
   const posterUrl = fixImageUrl(m.rasm);
@@ -480,6 +524,7 @@ function showDetails(m) {
 // =========================================================
 // PLAY QISM
 // =========================================================
+
 function playQism(index) {
   if (!currentMovie) return;
   if (!currentMovie.qismlar || currentMovie.qismlar.length === 0) return;
@@ -516,6 +561,7 @@ function playQism(index) {
 // =========================================================
 // MODAL YOPISH
 // =========================================================
+
 function closeModal() {
   stopVideo();
   const videoContainer = document.querySelector('.modal-video');
@@ -533,6 +579,7 @@ function closeModal() {
 // =========================================================
 // QIDIRUV EVENTS (Debounce bilan)
 // =========================================================
+
 const debouncedSearch = debounce((query) => {
   if (query.length > 0) {
     loadMovies(query);
@@ -581,6 +628,7 @@ document.addEventListener('click', function(e) {
 // =========================================================
 // EVENTS
 // =========================================================
+
 ageYes.addEventListener('click', () => { ageModal.classList.remove('active'); showDetails(currentMovie); });
 ageNo.addEventListener('click', closeModal);
 modalClose.addEventListener('click', closeModal);
@@ -589,6 +637,7 @@ movieModal.addEventListener('click', (e) => { if (e.target === movieModal) close
 // =========================================================
 // LOAD
 // =========================================================
+
 document.addEventListener('DOMContentLoaded', () => {
   renderLoadingCards();
   setTimeout(() => loadMovies(), 100);
