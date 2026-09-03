@@ -1,5 +1,5 @@
 // =========================================================
-// MOVIEHUB ADMIN PANEL - YANGILANGAN
+// MOVIEHUB ADMIN PANEL - POSTER URL O'CHIRILGAN
 // =========================================================
 
 const API_URL = 'https://movieehubbackend.onrender.com/api';
@@ -68,16 +68,11 @@ function getDefaultImage() {
   `);
 }
 
-function fixImageUrl(url, videoUrl) {
+function fixImageUrl(videoUrl) {
   if (videoUrl && (videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be'))) {
     const thumbnail = getYouTubeThumbnail(videoUrl);
     if (thumbnail) return thumbnail;
   }
-  
-  if (!url) return getDefaultImage();
-  if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  if (url.startsWith('/uploads/')) return BASE_URL + url;
-  if (url.startsWith('uploads/')) return BASE_URL + '/' + url;
   return getDefaultImage();
 }
 
@@ -435,7 +430,7 @@ async function loadMovies() {
 }
 
 // =========================================================
-// RENDER (YouTube thumbnail bilan)
+// RENDER (YouTube thumbnail bilan - poster URL o'chirilgan)
 // =========================================================
 
 function renderMoviesList(movies) {
@@ -451,7 +446,8 @@ function renderMoviesList(movies) {
   const defaultImg = getDefaultImage();
 
   moviesList.innerHTML = movies.map(movie => {
-    const imgUrl = fixImageUrl(movie.rasm, movie.video);
+    // Rasm faqat video URL dan olinadi
+    const imgUrl = fixImageUrl(movie.video);
     
     return `
       <div class="movie-item" data-id="${movie._id}">
@@ -513,7 +509,7 @@ addQismBtn.addEventListener('click', () => {
 });
 
 // =========================================================
-// SAQLASH
+// SAQLASH (POSTER URL O'CHIRILGAN)
 // =========================================================
 
 movieForm.addEventListener('submit', async (e) => {
@@ -528,7 +524,7 @@ movieForm.addEventListener('submit', async (e) => {
     tili: $('tili').value.trim(),
     yoshChegarasi: $('yoshChegarasi').value,
     davomiyligi: $('davomiyligi').value.trim(),
-    rasm: $('rasm').value.trim(),
+    rasm: '', // Poster URL o'chirildi - video dan avtomatik olinadi
     video: $('video').value.trim()
   };
 
@@ -628,7 +624,6 @@ async function editMovie(movieId) {
     $('tili').value = movie.tili || '';
     $('yoshChegarasi').value = movie.yoshChegarasi || '0+';
     $('davomiyligi').value = movie.davomiyligi || '';
-    $('rasm').value = movie.rasm || '';
     $('video').value = movie.video || '';
     
     turiSelect.dispatchEvent(new Event('change'));
