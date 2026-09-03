@@ -1,5 +1,5 @@
 // =========================================================
-// MOVIEHUB FRONTEND - TO'LIQ (2 KOLONKA, 16:9)
+// MOVIEHUB FRONTEND - YOUTUBE USLUBIDA
 // =========================================================
 
 const API_URL = 'https://movieehubbackend.onrender.com/api';
@@ -28,6 +28,90 @@ let currentVideoPlayer = null;
 let searchTimeout = null;
 let allMovies = [];
 let activeSuggestionIndex = -1;
+
+// =========================================================
+// YOUTUBE THUMBNAIL OLISH
+// =========================================================
+
+function getYouTubeThumbnail(url) {
+  if (!url) return null;
+  
+  let videoId = '';
+  
+  // YouTube video ID ni olish
+  if (url.includes('watch?v=')) {
+    videoId = url.split('watch?v=')[1].split('&')[0];
+  } else if (url.includes('youtu.be/')) {
+    videoId = url.split('youtu.be/')[1].split('?')[0];
+  } else if (url.includes('/embed/')) {
+    videoId = url.split('/embed/')[1].split('?')[0];
+  } else if (url.includes('youtube.com/shorts/')) {
+    videoId = url.split('shorts/')[1].split('?')[0];
+  }
+  
+  if (videoId) {
+    // YouTube thumbnail URL (maxresdefault - eng yuqori sifat)
+    return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+  }
+  
+  return null;
+}
+
+function getYouTubeEmbedUrl(url) {
+  let videoId = '';
+  if (url.includes('watch?v=')) {
+    videoId = url.split('watch?v=')[1].split('&')[0];
+  } else if (url.includes('youtu.be/')) {
+    videoId = url.split('youtu.be/')[1].split('?')[0];
+  } else if (url.includes('/embed/')) {
+    videoId = url.split('/embed/')[1].split('?')[0];
+  } else if (url.includes('youtube.com/shorts/')) {
+    videoId = url.split('shorts/')[1].split('?')[0];
+  }
+  if (videoId) {
+    return `https://www.youtube.com/embed/${videoId}?autoplay=0&rel=0&modestbranding=1&showinfo=0&iv_load_policy=3&controls=1&color=white&disablekb=1&fs=1&hl=uz`;
+  }
+  return url;
+}
+
+// =========================================================
+// DEFAULT IMAGE (YouTube thumbnail bo'lmasa)
+// =========================================================
+
+function getDefaultImage() {
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="300" height="169" viewBox="0 0 300 169">
+      <rect width="300" height="169" fill="#1a1a1a"/>
+      <circle cx="150" cy="84" r="40" fill="#2a2a2a"/>
+      <text x="150" y="95" font-family="Arial" font-size="30" text-anchor="middle" fill="#444">🎬</text>
+      <text x="150" y="125" font-family="Arial" font-size="12" fill="#555" text-anchor="middle">No Image</text>
+    </svg>
+  `);
+}
+
+// =========================================================
+// RASM URL NI TO'G'RILASH (YouTube thumbnail + backend)
+// =========================================================
+
+function fixImageUrl(url, videoUrl) {
+  // 1. Agar YouTube video bo'lsa, thumbnail olish
+  if (videoUrl && isYouTubeUrl(videoUrl)) {
+    const thumbnail = getYouTubeThumbnail(videoUrl);
+    if (thumbnail) return thumbnail;
+  }
+  
+  // 2. Agar rasm URL bo'lsa
+  if (!url) return getDefaultImage();
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  if (url.startsWith('/uploads/')) return BASE_URL + url;
+  if (url.startsWith('uploads/')) return BASE_URL + '/' + url;
+  if (url.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)) {
+    return BASE_URL + '/uploads/' + url;
+  }
+  
+  // 3. Default rasm
+  return getDefaultImage();
+}
 
 // =========================================================
 // SEO - META TEGLARNI YANGILASH
@@ -77,98 +161,32 @@ function hideLoading() {
 }
 
 // =========================================================
-// SKELETON LOADING
+// SKELETON LOADING (YouTube uslubida)
 // =========================================================
 
 function renderLoadingCards() {
   const cards = [];
   for (let i = 0; i < 6; i++) {
-    const isWide = (i % 2 === 0);
-    if (isWide) {
-      cards.push(`
-        <div class="loading-card-wide">
-          <div class="poster-placeholder"></div>
-          <div class="info-placeholder">
-            <div class="title-placeholder"></div>
-            <div class="meta-placeholder"></div>
-          </div>
+    cards.push(`
+      <div class="loading-card">
+        <div class="poster-placeholder"></div>
+        <div class="info-placeholder">
+          <div class="title-placeholder"></div>
+          <div class="meta-placeholder"></div>
         </div>
-      `);
-    } else {
-      cards.push(`
-        <div class="loading-card">
-          <div class="poster-placeholder"></div>
-          <div class="info-placeholder">
-            <div class="title-placeholder"></div>
-            <div class="meta-placeholder"></div>
-          </div>
-        </div>
-      `);
-    }
+      </div>
+    `);
   }
   moviesGrid.innerHTML = cards.join('');
 }
 
 // =========================================================
-// DEFAULT IMAGE
-// =========================================================
-
-function getDefaultImage() {
-  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="300" height="169" viewBox="0 0 300 169">
-      <rect width="300" height="169" fill="#1a1a1a"/>
-      <circle cx="150" cy="84" r="40" fill="#2a2a2a"/>
-      <text x="150" y="95" font-family="Arial" font-size="30" text-anchor="middle" fill="#444">🎬</text>
-      <text x="150" y="125" font-family="Arial" font-size="12" fill="#555" text-anchor="middle">No Image</text>
-    </svg>
-  `);
-}
-
-// =========================================================
-// URL FIX
-// =========================================================
-
-function fixImageUrl(url) {
-  if (!url) return getDefaultImage();
-  if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  if (url.startsWith('/uploads/')) return BASE_URL + url;
-  if (url.startsWith('uploads/')) return BASE_URL + '/' + url;
-  if (url.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)) {
-    return BASE_URL + '/uploads/' + url;
-  }
-  return getDefaultImage();
-}
-
-function fixVideoUrl(url) {
-  if (!url) return '';
-  if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  if (url.startsWith('/uploads/')) return BASE_URL + url;
-  if (url.startsWith('uploads/')) return BASE_URL + '/' + url;
-  return BASE_URL + '/uploads/' + url;
-}
-
-// =========================================================
-// YOUTUBE
+// YOUTUBE URL TEKSHIRISH
 // =========================================================
 
 function isYouTubeUrl(url) {
   if (!url) return false;
   return url.includes('youtube.com') || url.includes('youtu.be');
-}
-
-function getYouTubeEmbedUrl(url) {
-  let videoId = '';
-  if (url.includes('watch?v=')) {
-    videoId = url.split('watch?v=')[1].split('&')[0];
-  } else if (url.includes('youtu.be/')) {
-    videoId = url.split('youtu.be/')[1].split('?')[0];
-  } else if (url.includes('/embed/')) {
-    videoId = url.split('/embed/')[1].split('?')[0];
-  }
-  if (videoId) {
-    return `https://www.youtube.com/embed/${videoId}?autoplay=0&rel=0&modestbranding=1&showinfo=0&iv_load_policy=3&controls=1&color=white&disablekb=1&fs=1&hl=uz`;
-  }
-  return url;
 }
 
 // =========================================================
@@ -323,15 +341,14 @@ function showSuggestions(movies, query) {
   const topSuggestions = suggestions.slice(0, 6);
 
   suggestionsContainer.innerHTML = topSuggestions.map((m, i) => {
-    const imgUrl = fixImageUrl(m.rasm);
-    const titleHtml = highlightMatch(m.nomi, query);
+    const imgUrl = fixImageUrl(m.rasm, m.video);
     return `
       <div class="suggestion-item" data-index="${i}" onclick="selectSuggestion('${m._id}')">
         <div class="suggestion-poster">
           <img src="${imgUrl}" alt="${escapeHtml(m.nomi)}" onerror="this.src='${getDefaultImage()}'" />
         </div>
         <div class="suggestion-info">
-          <div class="suggestion-title">${titleHtml}</div>
+          <div class="suggestion-title">${highlightMatch(m.nomi, query)}</div>
           <div class="suggestion-meta">${m.yili} • ${m.janr}</div>
         </div>
       </div>
@@ -345,6 +362,15 @@ function selectSuggestion(movieId) {
   suggestionsContainer.classList.remove('active');
   suggestionsContainer.innerHTML = '';
   openMovie(movieId);
+}
+
+function updateActiveSuggestion(items) {
+  items.forEach((el, i) => {
+    el.classList.toggle('active-suggestion', i === activeSuggestionIndex);
+  });
+  if (activeSuggestionIndex >= 0 && items[activeSuggestionIndex]) {
+    items[activeSuggestionIndex].scrollIntoView({ block: 'nearest' });
+  }
 }
 
 // =========================================================
@@ -493,7 +519,7 @@ async function loadMovies(search = '') {
 }
 
 // =========================================================
-// RENDER MOVIES - 2 KOLONKA
+// RENDER MOVIES - YOUTUBE USLUBIDA
 // =========================================================
 
 function renderMovies(movies) {
@@ -511,12 +537,12 @@ function renderMovies(movies) {
   const defaultImg = getDefaultImage();
 
   moviesGrid.innerHTML = movies.map((m, index) => {
-    const imgUrl = fixImageUrl(m.rasm);
+    // YouTube thumbnail dan rasm olish
+    const imgUrl = fixImageUrl(m.rasm, m.video);
     const isWide = (index % 2 === 0);
-    const cardClass = isWide ? 'movie-card-wide' : 'movie-card';
-
+    
     return `
-      <div class="${cardClass}" onclick="openMovie('${m._id}')">
+      <div class="movie-card" onclick="openMovie('${m._id}')">
         <div class="poster-wrap">
           <img
             src="${imgUrl}"
@@ -525,17 +551,16 @@ function renderMovies(movies) {
             loading="lazy"
             onerror="this.onerror=null; this.src='${defaultImg}'"
           />
+          ${isWide ? `<div class="video-duration">${m.davomiyligi || '2:30'}</div>` : ''}
         </div>
         <div class="movie-info">
-          <div>
-            <div class="movie-title">${escapeHtml(m.nomi)}</div>
-            ${isWide ? `<div class="movie-genre">${escapeHtml(m.janr || '')}</div>` : ''}
-          </div>
+          <div class="movie-title">${escapeHtml(m.nomi)}</div>
           <div class="movie-meta">
-            <span>${m.yili}</span>
-            <span>${m.turi === 'film' ? '🎬' : '📺'}</span>
-            ${!isWide ? `<span>${escapeHtml(m.janr || '')}</span>` : ''}
+            <span class="channel-name">${escapeHtml(m.davlati || 'MovieHub')}</span>
+            <span class="views">${m.views || 0} ko'rish</span>
+            <span class="year">${m.yili}</span>
           </div>
+          <div class="movie-description">${escapeHtml(m.janr || '')}</div>
         </div>
       </div>
     `;
@@ -562,7 +587,7 @@ async function openMovie(id) {
     updateMetaTags(
       currentMovie.nomi,
       `${currentMovie.nomi} (${currentMovie.yili}) - ${currentMovie.janr}. ${currentMovie.davlati} filmi. ${currentMovie.davomiyligi}`,
-      fixImageUrl(currentMovie.rasm),
+      fixImageUrl(currentMovie.rasm, currentMovie.video),
       `${window.location.origin}/?film=${currentMovie._id}`
     );
 
@@ -589,11 +614,11 @@ async function openMovie(id) {
 
 function showDetails(m) {
   const defaultImg = getDefaultImage();
-  const posterUrl = fixImageUrl(m.rasm);
+  const posterUrl = fixImageUrl(m.rasm, m.video);
   let videoHtml = '', qismlarHtml = '';
 
   if (m.turi === 'film') {
-    const videoUrl = fixVideoUrl(m.video);
+    const videoUrl = m.video;
     if (videoUrl) {
       if (isYouTubeUrl(videoUrl)) {
         const embedUrl = getYouTubeEmbedUrl(videoUrl);
@@ -605,7 +630,7 @@ function showDetails(m) {
       videoHtml = `<p style="color:var(--color-text-secondary);padding:20px;">🎬 Video mavjud emas</p>`;
     }
   } else if (m.qismlar?.length) {
-    const firstVideo = fixVideoUrl(m.qismlar[0]?.video);
+    const firstVideo = m.qismlar[0]?.video;
     if (firstVideo) {
       if (isYouTubeUrl(firstVideo)) {
         const embedUrl = getYouTubeEmbedUrl(firstVideo);
@@ -666,7 +691,7 @@ function playQism(index) {
   if (!qism) return;
   stopVideo();
   document.querySelectorAll('.qism-btn').forEach((btn, i) => btn.classList.toggle('active', i === index));
-  const videoUrl = fixVideoUrl(qism.video);
+  const videoUrl = qism.video;
   if (!videoUrl) return;
   let videoContainer = document.querySelector('.modal-right .modal-video');
   if (!videoContainer) {
