@@ -29,12 +29,12 @@
   --ease: cubic-bezier(0.4, 0, 0.2, 1);
   --duration: 0.25s;
 
-  /* Grid tokens */
-  --card-min: 170px;
+  /* Grid tokens - 2 KOLONKA */
+  --card-min: 280px;
   --card-poster-ratio: 2 / 3;
-  --card-wide-span: 2;
+  --card-wide-span: 1; /* Keng kartochka endi 1 kolonka */
   --card-wide-poster-w: 160px;
-  --card-wide-height: 420px; /* OSHIRILDI */
+  --card-wide-height: 280px;
 }
 
 * {
@@ -284,7 +284,7 @@ img {
 }
 
 /* =========================================================
-   MOVIES GRID
+   MOVIES GRID - 2 KOLONKA
    ========================================================= */
 .main-content {
   padding: 24px 0 40px;
@@ -292,10 +292,11 @@ img {
 
 .movies-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(var(--card-min), 1fr));
-  grid-auto-rows: 1fr;
-  gap: 16px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
   padding: 15px 0;
+  max-width: 900px;
+  margin: 0 auto;
 }
 
 /* Oddiy kartochka */
@@ -310,17 +311,18 @@ img {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 380px;
 }
 
 .movie-card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-4px);
   box-shadow: var(--shadow-md);
   border-color: var(--color-accent);
 }
 
 .movie-card .poster-wrap {
   width: 100%;
-  aspect-ratio: var(--card-poster-ratio);
+  aspect-ratio: 16 / 9;
   overflow: hidden;
   background: var(--color-surface-raised);
   flex-shrink: 0;
@@ -330,12 +332,12 @@ img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center top;
+  object-position: center;
   display: block;
 }
 
 .movie-card .movie-info {
-  padding: 10px 12px;
+  padding: 14px 16px 16px;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -344,7 +346,7 @@ img {
 }
 
 .movie-card .movie-title {
-  font-size: 0.88rem;
+  font-size: 1rem;
   font-weight: var(--font-weight-semibold);
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -355,17 +357,17 @@ img {
 
 .movie-card .movie-meta {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   color: var(--color-text-secondary);
-  font-size: 0.74rem;
+  font-size: 0.78rem;
   flex-wrap: wrap;
 }
 
 /* =========================================================
-   KENG KARTOCHKA (WIDE) - BALANDLIGI OSHIRILGAN
+   KENG KARTOCHKA (WIDE) - 2 KOLONKA
    ========================================================= */
 .movie-card-wide {
-  grid-column: span var(--card-wide-span);
+  grid-column: span 1;
   background: var(--color-surface);
   border-radius: var(--radius-md);
   overflow: hidden;
@@ -375,19 +377,19 @@ img {
     border-color var(--duration) var(--ease);
   display: flex;
   flex-direction: row;
-  height: var(--card-wide-height);
-  max-height: var(--card-wide-height);
-  min-height: var(--card-wide-height);
+  height: 200px;
+  min-height: 200px;
+  max-height: 200px;
 }
 
 .movie-card-wide:hover {
-  transform: translateY(-3px);
+  transform: translateY(-4px);
   box-shadow: var(--shadow-md);
   border-color: var(--color-accent);
 }
 
 .movie-card-wide .poster-wrap {
-  width: var(--card-wide-poster-w);
+  width: 140px;
   height: 100%;
   overflow: hidden;
   background: var(--color-surface-raised);
@@ -398,7 +400,7 @@ img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center top;
+  object-position: center;
   display: block;
 }
 
@@ -407,13 +409,13 @@ img {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 20px 24px;
-  gap: 8px;
+  padding: 16px 20px;
+  gap: 6px;
   min-width: 0;
 }
 
 .movie-card-wide .movie-title {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: var(--font-weight-semibold);
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -426,13 +428,13 @@ img {
   display: flex;
   gap: 10px;
   color: var(--color-text-secondary);
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   flex-wrap: wrap;
 }
 
 .movie-card-wide .movie-genre {
   color: var(--color-accent);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: var(--font-weight-medium);
 }
 
@@ -441,10 +443,11 @@ img {
    ========================================================= */
 .loading-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(var(--card-min), 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
   width: 100%;
-  grid-auto-rows: 1fr;
+  max-width: 900px;
+  margin: 0 auto;
   padding: 15px 0;
 }
 
@@ -457,13 +460,13 @@ img {
   display: flex;
   flex-direction: column;
   height: 100%;
-  min-height: 320px;
+  min-height: 340px;
   animation: shimmer 1.2s ease-in-out infinite;
 }
 
 .loading-card .poster-placeholder {
   width: 100%;
-  aspect-ratio: var(--card-poster-ratio);
+  aspect-ratio: 16 / 9;
   flex-shrink: 0;
   background: linear-gradient(100deg, var(--color-surface) 30%, var(--color-surface-raised) 50%, var(--color-surface) 70%);
   background-size: 200% 100%;
@@ -471,7 +474,7 @@ img {
 }
 
 .loading-card .info-placeholder {
-  padding: 10px 12px;
+  padding: 14px 16px;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -480,14 +483,14 @@ img {
 }
 
 .loading-card .title-placeholder {
-  height: 16px;
+  height: 18px;
   width: 80%;
   background: var(--color-surface-raised);
   border-radius: 4px;
 }
 
 .loading-card .meta-placeholder {
-  height: 11px;
+  height: 12px;
   width: 55%;
   background: var(--color-surface-raised);
   border-radius: 4px;
@@ -495,21 +498,21 @@ img {
 
 /* Keng skeleton */
 .loading-card-wide {
-  grid-column: span var(--card-wide-span);
+  grid-column: span 1;
   background: var(--color-surface);
   border-radius: var(--radius-md);
   overflow: hidden;
   border: 1px solid var(--color-border);
   display: flex;
   flex-direction: row;
-  height: var(--card-wide-height);
-  max-height: var(--card-wide-height);
-  min-height: var(--card-wide-height);
+  height: 200px;
+  min-height: 200px;
+  max-height: 200px;
   animation: shimmer 1.2s ease-in-out infinite;
 }
 
 .loading-card-wide .poster-placeholder {
-  width: var(--card-wide-poster-w);
+  width: 140px;
   height: 100%;
   flex-shrink: 0;
   background: linear-gradient(100deg, var(--color-surface) 30%, var(--color-surface-raised) 50%, var(--color-surface) 70%);
@@ -519,45 +522,36 @@ img {
 
 .loading-card-wide .info-placeholder {
   flex: 1;
-  padding: 20px 24px;
+  padding: 16px 20px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
 }
 
 .loading-card-wide .title-placeholder {
-  height: 22px;
+  height: 20px;
   width: 80%;
   background: var(--color-surface-raised);
   border-radius: 4px;
 }
 
 .loading-card-wide .meta-placeholder {
-  height: 15px;
-  width: 60%;
+  height: 12px;
+  width: 55%;
   background: var(--color-surface-raised);
   border-radius: 4px;
 }
 
 @keyframes shimmer {
-  0%,
-  100% {
-    opacity: 0.6;
-  }
-  50% {
-    opacity: 1;
-  }
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
 }
 
 @keyframes gradientMove {
-  0% {
-    background-position: 150% 0;
-  }
-  100% {
-    background-position: -50% 0;
-  }
+  0% { background-position: 150% 0; }
+  100% { background-position: -50% 0; }
 }
 
 /* =========================================================
@@ -590,9 +584,7 @@ img {
 }
 
 @keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
 .loading-text {
@@ -679,9 +671,9 @@ img {
 
 .modal-poster {
   width: 100%;
-  height: 280px;
+  aspect-ratio: 16 / 9;
   object-fit: cover;
-  object-position: center top;
+  object-position: center;
   border-radius: var(--radius-md);
   background: var(--color-surface);
   display: block;
@@ -769,7 +761,7 @@ img {
 }
 
 .modal-right h2 {
-  font-size: 1.5rem;
+  font-size: 1.3rem;
   font-weight: var(--font-weight-bold);
   margin-top: 4px;
 }
@@ -982,7 +974,7 @@ img {
 
 .movie-item img {
   width: 100%;
-  aspect-ratio: var(--card-poster-ratio);
+  aspect-ratio: 16 / 9;
   object-fit: cover;
   border-radius: var(--radius-sm);
   margin-bottom: 8px;
@@ -1052,18 +1044,6 @@ hr {
 /* =========================================================
    RESPONSIVE
    ========================================================= */
-@media (max-width: 1024px) {
-  :root {
-    --card-min: 160px;
-    --card-wide-poster-w: 140px;
-    --card-wide-height: 360px;
-  }
-  .movies-grid,
-  .loading-grid {
-    gap: 14px;
-  }
-}
-
 @media (max-width: 768px) {
   .header-content {
     flex-direction: column;
@@ -1073,35 +1053,43 @@ hr {
     max-width: 100%;
   }
 
-  :root {
-    --card-min: 140px;
-    --card-wide-poster-w: 120px;
-    --card-wide-height: 300px;
-  }
-
   .movies-grid,
   .loading-grid {
-    gap: 12px;
+    grid-template-columns: 1fr;
+    gap: 14px;
+    max-width: 100%;
   }
 
-  .movie-card-wide,
-  .loading-card-wide {
-    grid-column: span 2;
+  .movie-card {
+    min-height: 280px;
   }
 
-  .movie-card-wide .movie-title,
-  .loading-card-wide .title-placeholder {
+  .movie-card-wide {
+    height: 160px;
+    min-height: 160px;
+    max-height: 160px;
+  }
+
+  .movie-card-wide .poster-wrap {
+    width: 110px;
+  }
+
+  .movie-card-wide .movie-info {
+    padding: 12px 16px;
+  }
+
+  .movie-card-wide .movie-title {
     font-size: 0.95rem;
   }
 
-  .movie-card-wide .movie-info,
-  .loading-card-wide .info-placeholder {
-    padding: 14px 16px;
+  .loading-card-wide {
+    height: 160px;
+    min-height: 160px;
+    max-height: 160px;
   }
 
-  .movie-card-wide .movie-meta {
-    font-size: 0.76rem;
-    gap: 6px;
+  .loading-card-wide .poster-placeholder {
+    width: 110px;
   }
 
   .modal-content {
@@ -1127,7 +1115,7 @@ hr {
   }
 
   .modal-poster {
-    height: 140px;
+    height: 100px;
     aspect-ratio: auto;
     border-radius: var(--radius-sm);
   }
@@ -1149,78 +1137,102 @@ hr {
     gap: 8px;
   }
   .modal-right h2 {
-    font-size: 1.2rem;
-}
-.modal-right .movie-meta span {
+    font-size: 1.1rem;
+  }
+  .modal-right .movie-meta span {
     font-size: 0.7rem;
     padding: 2px 10px;
-}
-.modal-close {
+  }
+  .modal-close {
     top: 10px;
     right: 12px;
     width: 32px;
     height: 32px;
     font-size: 1.2rem;
-}
+  }
 
-.suggestions-container {
+  .suggestions-container {
     max-height: 300px;
-}
-.age-buttons {
+  }
+  .age-buttons {
     flex-direction: column;
-}
-.age-btn {
+  }
+  .age-btn {
     width: 100%;
-}
-.form-row {
+  }
+  .form-row {
     grid-template-columns: 1fr;
-}
-.qism-item {
+  }
+  .qism-item {
     flex-direction: column;
     align-items: stretch;
-}
-.movies-list {
+  }
+  .movies-list {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-}
+  }
 }
 
 @media (max-width: 480px) {
-:root {
-    --card-min: 120px;
-    --card-wide-poster-w: 100px;
-    --card-wide-height: 260px;
-}
-.movies-grid,
-.loading-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-}
-.movie-card-wide,
-.loading-card-wide {
-    grid-column: span 2;
-}
-.logo {
+  .movies-grid,
+  .loading-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .movie-card {
+    min-height: 240px;
+  }
+
+  .movie-card-wide {
+    height: 140px;
+    min-height: 140px;
+    max-height: 140px;
+  }
+
+  .movie-card-wide .poster-wrap {
+    width: 90px;
+  }
+
+  .movie-card-wide .movie-info {
+    padding: 10px 12px;
+  }
+
+  .movie-card-wide .movie-title {
+    font-size: 0.85rem;
+  }
+
+  .loading-card-wide {
+    height: 140px;
+    min-height: 140px;
+    max-height: 140px;
+  }
+
+  .loading-card-wide .poster-placeholder {
+    width: 90px;
+  }
+
+  .logo {
     font-size: 1.1rem;
-}
-.admin-login {
+  }
+  .admin-login {
     padding: 20px;
     margin: 20px 10px;
-}
+  }
 
-.modal-left {
+  .modal-left {
     flex-direction: column;
     align-items: stretch;
-}
-.modal-poster-container {
+  }
+  .modal-poster-container {
     width: 100%;
-}
-.modal-poster {
-    height: 180px;
+  }
+  .modal-poster {
+    height: 160px;
     aspect-ratio: auto;
-}
+  }
 
-.suggestion-item .suggestion-poster {
+  .suggestion-item .suggestion-poster {
     width: 32px;
     height: 44px;
-}
+  }
 }
