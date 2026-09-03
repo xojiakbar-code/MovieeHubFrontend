@@ -1,0 +1,6 @@
+# robots.txt - MovieHub
+User-agent: *
+Allow: /
+Disallow: /admin/
+
+Sitemap: https://movihub.pages.dev/sitemap.xml
