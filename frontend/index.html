@@ -3,8 +3,47 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MovieHub - Kino va Seriallar</title>
   
+  <!-- =========================================================
+       SEO META TEGLAR
+  ========================================================= -->
+  <title>MovieHub - Kino va Seriallar | Bepul Onlayn Tomosha</title>
+  <meta name="description" content="MovieHub - O'zbek tilida bepul filmlar va seriallar. Eng yangi va mashhur kinolarni onlayn tomosha qiling. Kino va seriallar katta to'plam." />
+  <meta name="keywords" content="film, serial, kino, o'zbek filmlari, onlayn kino, bepul kino, MovieHub, O'zbekiston kinolari, yangi filmlar" />
+  <meta name="robots" content="index, follow" />
+  <meta name="language" content="Uzbek" />
+  <link rel="canonical" href="https://movihub.pages.dev/" />
+  
+  <!-- Open Graph (Facebook, Telegram, WhatsApp uchun) -->
+  <meta property="og:title" content="MovieHub - Kino va Seriallar" />
+  <meta property="og:description" content="O'zbek tilida bepul filmlar va seriallar. Eng yangi va mashhur kinolarni onlayn tomosha qiling." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://movihub.pages.dev/" />
+  <meta property="og:image" content="https://movihub.pages.dev/og-image.jpg" />
+  <meta property="og:site_name" content="MovieHub" />
+  
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="MovieHub - Kino va Seriallar" />
+  <meta name="twitter:description" content="O'zbek tilida bepul filmlar va seriallar. Eng yangi va mashhur kinolarni onlayn tomosha qiling." />
+  <meta name="twitter:image" content="https://movihub.pages.dev/og-image.jpg" />
+  
+  <!-- Schema.org Structured Data (JSON-LD) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "MovieHub",
+    "url": "https://movihub.pages.dev/",
+    "description": "O'zbek tilida bepul filmlar va seriallar. Eng yangi va mashhur kinolarni onlayn tomosha qiling.",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://movihub.pages.dev/?search={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
+
   <!-- Preconnect va DNS prefetch -->
   <link rel="preconnect" href="https://movieehubbackend.onrender.com" />
   <link rel="dns-prefetch" href="https://movieehubbackend.onrender.com" />
@@ -13,6 +52,10 @@
   
   <!-- Preload -->
   <link rel="preload" as="image" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect fill='%23007aff' width='24' height='24'/></svg>" />
+  
+  <!-- Favicon -->
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -28,7 +71,7 @@
   <header class="header">
     <div class="container">
       <div class="header-content">
-        <a href="index.html" class="logo">
+        <a href="/" class="logo" aria-label="MovieHub - Bosh sahifa">
           <i class="fas fa-film"></i>
           <span>MovieHub</span>
         </a>
@@ -41,8 +84,9 @@
               placeholder="Qidirish..." 
               class="search-input"
               autocomplete="off"
+              aria-label="Film qidirish"
             />
-            <button id="searchBtn" class="search-btn">
+            <button id="searchBtn" class="search-btn" aria-label="Qidirish">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="11" cy="11" r="8"/>
                 <line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -52,7 +96,7 @@
           <div class="suggestions-container" id="suggestionsContainer"></div>
         </div>
         
-        <a href="admin.html" class="login-btn">
+        <a href="admin.html" class="login-btn" aria-label="Admin panel">
           <i class="fas fa-user-shield"></i>
           <span>Login</span>
         </a>
@@ -63,6 +107,7 @@
   <!-- Main -->
   <main class="main-content">
     <div class="container">
+      <h1 class="sr-only">MovieHub - O'zbek tilidagi eng yaxshi kino va seriallar platformasi</h1>
       <div class="movies-grid" id="moviesGrid"></div>
     </div>
   </main>
@@ -70,7 +115,7 @@
   <!-- Movie Modal -->
   <div class="modal-overlay" id="movieModal">
     <div class="modal-content">
-      <button class="modal-close" id="modalClose">&times;</button>
+      <button class="modal-close" id="modalClose" aria-label="Yopish">&times;</button>
       <div class="modal-body" id="modalBody"></div>
     </div>
   </div>
