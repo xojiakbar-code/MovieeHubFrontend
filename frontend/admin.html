@@ -6,7 +6,6 @@
   <title>MovieHub - Admin Panel</title>
   <link rel="stylesheet" href="style.css" />
   <style>
-    /* Admin panel uchun qo'shimcha */
     .settings-section {
       background: var(--color-surface);
       border-radius: var(--radius-lg);
@@ -81,44 +80,14 @@
       margin-top: 4px;
     }
     
-    .thumbnail-preview {
-      width: 160px;
-      aspect-ratio: 16 / 9;
-      object-fit: cover;
+    .video-url-hint {
+      color: var(--color-accent-green);
+      font-size: 0.78rem;
+      background: rgba(52, 199, 89, 0.05);
+      padding: 8px 12px;
       border-radius: var(--radius-sm);
-      margin-top: 8px;
-      background: var(--color-surface-raised);
-      border: 1px solid var(--color-border);
-    }
-    
-    .movie-item img {
-      width: 100%;
-      aspect-ratio: 16 / 9;
-      object-fit: cover;
-      border-radius: var(--radius-sm);
-      margin-bottom: 8px;
-      display: block;
-      background: var(--color-surface-raised);
-    }
-    
-    .qism-item {
-      display: flex;
-      gap: 12px;
-      align-items: flex-end;
-      background: var(--color-surface-raised);
-      padding: 12px;
-      border-radius: var(--radius-sm);
-      margin-bottom: 10px;
-      border: 0.5px solid var(--color-border);
-    }
-    
-    .qism-item .form-group {
-      margin-bottom: 0;
-      flex: 1;
-    }
-    
-    #addQismBtn {
-      margin: 10px 0 20px 0;
+      border: 0.5px solid rgba(52, 199, 89, 0.2);
+      margin-top: 4px;
     }
     
     .movies-list {
@@ -138,6 +107,16 @@
     
     .movie-item:hover {
       border-color: var(--color-accent);
+    }
+    
+    .movie-item img {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      border-radius: var(--radius-sm);
+      margin-bottom: 8px;
+      display: block;
+      background: var(--color-surface-raised);
     }
     
     .movie-item h4 {
@@ -180,14 +159,24 @@
       opacity: 0.8;
     }
     
-    .video-url-hint {
-      color: var(--color-accent-green);
-      font-size: 0.78rem;
-      background: rgba(52, 199, 89, 0.05);
-      padding: 8px 12px;
+    .qism-item {
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+      background: var(--color-surface-raised);
+      padding: 12px;
       border-radius: var(--radius-sm);
-      border: 0.5px solid rgba(52, 199, 89, 0.2);
-      margin-top: 4px;
+      margin-bottom: 10px;
+      border: 0.5px solid var(--color-border);
+    }
+    
+    .qism-item .form-group {
+      margin-bottom: 0;
+      flex: 1;
+    }
+    
+    #addQismBtn {
+      margin: 10px 0 20px 0;
     }
     
     @media (max-width: 768px) {
@@ -256,7 +245,7 @@
           </span>
         </div>
         
-        <!-- ===== SOZLAMALAR (SETTINGS) ===== -->
+        <!-- ===== SOZLAMALAR ===== -->
         <div class="settings-section">
           <h3>⚙️ Sozlamalar</h3>
           
@@ -297,7 +286,6 @@
         <h2>📽️ Yangi Film/Serial Qo'shish</h2>
         
         <form id="movieForm">
-          <!-- Asosiy ma'lumotlar -->
           <div class="form-row">
             <div class="form-group">
               <label for="nomi">Nomi *</label>
@@ -351,15 +339,8 @@
             </div>
           </div>
 
-          <!-- Poster rasmi (ixtiyoriy) -->
+          <!-- POSTER URL O'CHIRILDI - FAQAT VIDEO URL -->
           <div class="form-group">
-            <label for="rasm">Poster rasmi URL <span style="color:var(--color-text-tertiary);font-weight:400;">(ixtiyoriy - YouTube dan avtomatik olinadi)</span></label>
-            <input type="text" id="rasm" placeholder="https://i.imgur.com/xxx.jpg (ixtiyoriy)" />
-            <div class="form-hint">Agar YouTube video bo'lsa, thumbnail avtomatik olinadi. Ixtiyoriy.</div>
-          </div>
-
-          <!-- Video URL -->
-          <div class="form-group" id="videoField">
             <label for="video">Video URL *</label>
             <input type="text" id="video" placeholder="https://www.youtube.com/watch?v=xxx yoki video.mp4" required />
             <div class="video-url-hint">
