@@ -1,5 +1,5 @@
 // =========================================================
-// MOVIEHUB FRONTEND - TO'LIQ (SEO + AQLLI QIDIRUV)
+// MOVIEHUB FRONTEND - TO'LIQ (AQLLI QIDIRUV BILAN)
 // =========================================================
 
 const API_URL = 'https://movieehubbackend.onrender.com/api';
@@ -38,59 +38,48 @@ function updateMetaTags(title, description, image, url) {
   if (title) {
     document.title = title + ' | MovieHub';
   }
-  
+
   // Meta description
   const metaDesc = document.querySelector('meta[name="description"]');
   if (metaDesc && description) {
     metaDesc.content = description;
   }
-  
+
   // Meta keywords
   const metaKeywords = document.querySelector('meta[name="keywords"]');
   if (metaKeywords && title) {
     const keywords = title.split(' ').slice(0, 3).join(', ') + ', film, serial, kino, MovieHub';
     metaKeywords.content = keywords;
   }
-  
+
   // Open Graph - Title
   const ogTitle = document.querySelector('meta[property="og:title"]');
   if (ogTitle && title) {
     ogTitle.content = title + ' | MovieHub';
   }
-  
+
   // Open Graph - Description
   const ogDesc = document.querySelector('meta[property="og:description"]');
   if (ogDesc && description) {
     ogDesc.content = description;
   }
-  
+
   // Open Graph - Image
   const ogImage = document.querySelector('meta[property="og:image"]');
   if (ogImage && image) {
     ogImage.content = image;
   }
-  
+
   // Open Graph - URL
   const ogUrl = document.querySelector('meta[property="og:url"]');
   if (ogUrl && url) {
     ogUrl.content = url;
   }
-  
+
   // Canonical URL
   const canonical = document.querySelector('link[rel="canonical"]');
   if (canonical && url) {
     canonical.href = url;
-  }
-  
-  // Schema.org - JSON-LD yangilash
-  const script = document.querySelector('script[type="application/ld+json"]');
-  if (script && title) {
-    try {
-      const data = JSON.parse(script.textContent);
-      data.name = title;
-      data.description = description || 'MovieHub da tomosha qiling';
-      script.textContent = JSON.stringify(data);
-    } catch(e) {}
   }
 }
 
@@ -222,7 +211,7 @@ function stopVideo() {
 }
 
 // =========================================================
-// AQLLI QIDIRUV — HARFLARGA MOSLASHUVCHI
+// AQLLI QIDIRUV
 // =========================================================
 
 const CHAR_CLASS_MAP = {
@@ -309,10 +298,6 @@ function getSearchSuggestions(movies, query) {
     .sort((a, b) => b.score - a.score)
     .map(x => x.movie);
 }
-
-// =========================================================
-// TAKLIFLARNI KO'RSATISH
-// =========================================================
 
 function escapeHtml(str) {
   return String(str)
@@ -602,17 +587,15 @@ async function openMovie(id) {
     if (!data.success) throw new Error(data.message || 'Film topilmadi');
     currentMovie = data.data;
     hideLoading();
-    
-    // =========================================================
-    // SEO - META TEGLARNI YANGILASH
-    // =========================================================
+
+    // SEO - Meta teglarni yangilash
     updateMetaTags(
       currentMovie.nomi,
       `${currentMovie.nomi} (${currentMovie.yili}) - ${currentMovie.janr}. ${currentMovie.davlati} filmi. ${currentMovie.davomiyligi}`,
       fixImageUrl(currentMovie.rasm),
       `${window.location.origin}/?film=${currentMovie._id}`
     );
-    
+
     const age = currentMovie.yoshChegarasi || '0+';
     if (RESTRICTED_AGES.includes(age)) {
       ageMessage.textContent = `Ushbu film uchun yosh chegarasi ${age} deb belgilangan. Sizning yoshingiz ${age} ga yetarlimi?`;
@@ -755,7 +738,7 @@ function closeModal() {
   movieModal.classList.remove('active');
   ageModal.classList.remove('active');
   document.body.style.overflow = '';
-  
+
   // SEO - Meta teglarni qayta tiklash
   updateMetaTags(
     'MovieHub - Kino va Seriallar',
