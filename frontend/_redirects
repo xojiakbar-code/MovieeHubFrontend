@@ -1,0 +1,3 @@
+# _redirects - Cloudflare Pages uchun
+# Barcha so'rovlarni index.html ga yo'naltirish (SPA uchun)
+/*    /index.html   200
