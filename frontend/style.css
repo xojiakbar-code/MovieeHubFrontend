@@ -1,5 +1,5 @@
 /* =========================================================
-   APPLE-STYLED DARK THEME - MovieHub
+   APPLE-STYLED DARK THEME - MovieHub (2 columns, 16:9)
    ========================================================= */
 :root {
   --color-bg: #0a0a0a;
@@ -9,7 +9,6 @@
   --color-text-secondary: #a1a1a6;
   --color-text-tertiary: #6e6e73;
   --color-border: #38383a;
-  --color-border-strong: #555557;
   --color-accent: #007aff;
   --color-accent-hover: #0055b3;
   --color-accent-green: #34c759;
@@ -29,12 +28,8 @@
   --ease: cubic-bezier(0.4, 0, 0.2, 1);
   --duration: 0.25s;
 
-  /* Grid tokens - 2 KOLONKA */
-  --card-min: 280px;
-  --card-poster-ratio: 2 / 3;
-  --card-wide-span: 1; /* Keng kartochka endi 1 kolonka */
-  --card-wide-poster-w: 160px;
-  --card-wide-height: 280px;
+  --card-wide-poster-w: 140px;
+  --card-wide-height: 200px;
 }
 
 * {
@@ -51,27 +46,12 @@ body {
   line-height: 1.5;
 }
 
-/* GPU acceleration */
-.movie-card,
-.movie-card-wide,
-.loading-card,
-.loading-card-wide {
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  will-change: transform, opacity;
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
 }
 
-/* Content visibility */
-.movies-grid,
-.loading-grid {
-  content-visibility: auto;
-  contain-intrinsic-size: 800px;
-}
-
-a {
-  text-decoration: none;
-  color: inherit;
-}
 button {
   font-family: inherit;
   cursor: pointer;
@@ -79,10 +59,10 @@ button {
   background: none;
   color: inherit;
 }
-img {
-  display: block;
-  max-width: 100%;
-  height: auto;
+
+a {
+  text-decoration: none;
+  color: inherit;
 }
 
 .container {
@@ -193,9 +173,6 @@ img {
   stroke-linejoin: round;
 }
 
-/* =========================================================
-   TAKLIFLAR
-   ========================================================= */
 .suggestions-container {
   display: none;
   position: absolute;
@@ -290,28 +267,30 @@ img {
   padding: 24px 0 40px;
 }
 
-.movies-grid {
+.movies-grid,
+.loading-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 20px;
-  padding: 15px 0;
   max-width: 900px;
   margin: 0 auto;
+  padding: 15px 0;
 }
 
-/* Oddiy kartochka */
+/* =========================================================
+   ODDIY KARTOCHKA (16:9 poster)
+   ========================================================= */
 .movie-card {
   background: var(--color-surface);
   border-radius: var(--radius-md);
   overflow: hidden;
   cursor: pointer;
   border: 1px solid var(--color-border);
-  transition: transform var(--duration) var(--ease), box-shadow var(--duration) var(--ease),
-    border-color var(--duration) var(--ease);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
   display: flex;
   flex-direction: column;
   height: 100%;
-  min-height: 380px;
+  min-height: 320px;
 }
 
 .movie-card:hover {
@@ -320,6 +299,7 @@ img {
   border-color: var(--color-accent);
 }
 
+/* POSTER - TO'LIQ KO'RINADI, QIRQILMAYDI */
 .movie-card .poster-wrap {
   width: 100%;
   aspect-ratio: 16 / 9;
@@ -331,9 +311,10 @@ img {
 .movie-card .movie-poster {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;  /* Rasm to'liq ko'rinadi, qirqilmaydi */
   object-position: center;
   display: block;
+  background: var(--color-surface-raised);
 }
 
 .movie-card .movie-info {
@@ -364,7 +345,7 @@ img {
 }
 
 /* =========================================================
-   KENG KARTOCHKA (WIDE) - 2 KOLONKA
+   KENG KARTOCHKA (WIDE) - HEIGHT VA WIDTH TENG
    ========================================================= */
 .movie-card-wide {
   grid-column: span 1;
@@ -373,13 +354,12 @@ img {
   overflow: hidden;
   cursor: pointer;
   border: 1px solid var(--color-border);
-  transition: transform var(--duration) var(--ease), box-shadow var(--duration) var(--ease),
-    border-color var(--duration) var(--ease);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
   display: flex;
   flex-direction: row;
-  height: 200px;
-  min-height: 200px;
-  max-height: 200px;
+  height: var(--card-wide-height);
+  min-height: var(--card-wide-height);
+  max-height: var(--card-wide-height);
 }
 
 .movie-card-wide:hover {
@@ -388,8 +368,9 @@ img {
   border-color: var(--color-accent);
 }
 
+/* POSTER - TO'LIQ KO'RINADI, QIRQILMAYDI */
 .movie-card-wide .poster-wrap {
-  width: 140px;
+  width: var(--card-wide-poster-w);
   height: 100%;
   overflow: hidden;
   background: var(--color-surface-raised);
@@ -399,9 +380,10 @@ img {
 .movie-card-wide .movie-poster {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;  /* Rasm to'liq ko'rinadi, qirqilmaydi */
   object-position: center;
   display: block;
+  background: var(--color-surface-raised);
 }
 
 .movie-card-wide .movie-info {
@@ -409,8 +391,8 @@ img {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 16px 20px;
-  gap: 6px;
+  padding: 14px 18px;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -439,19 +421,8 @@ img {
 }
 
 /* =========================================================
-   SKELETON KARTALAR - LOADING VAQTIDA
+   SKELETON LOADING
    ========================================================= */
-.loading-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-  width: 100%;
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 15px 0;
-}
-
-/* Oddiy skeleton */
 .loading-card {
   background: var(--color-surface);
   border-radius: var(--radius-md);
@@ -460,14 +431,13 @@ img {
   display: flex;
   flex-direction: column;
   height: 100%;
-  min-height: 340px;
+  min-height: 320px;
   animation: shimmer 1.2s ease-in-out infinite;
 }
 
 .loading-card .poster-placeholder {
   width: 100%;
   aspect-ratio: 16 / 9;
-  flex-shrink: 0;
   background: linear-gradient(100deg, var(--color-surface) 30%, var(--color-surface-raised) 50%, var(--color-surface) 70%);
   background-size: 200% 100%;
   animation: gradientMove 1.5s ease-in-out infinite;
@@ -496,7 +466,6 @@ img {
   border-radius: 4px;
 }
 
-/* Keng skeleton */
 .loading-card-wide {
   grid-column: span 1;
   background: var(--color-surface);
@@ -505,16 +474,15 @@ img {
   border: 1px solid var(--color-border);
   display: flex;
   flex-direction: row;
-  height: 200px;
-  min-height: 200px;
-  max-height: 200px;
+  height: var(--card-wide-height);
+  min-height: var(--card-wide-height);
+  max-height: var(--card-wide-height);
   animation: shimmer 1.2s ease-in-out infinite;
 }
 
 .loading-card-wide .poster-placeholder {
-  width: 140px;
+  width: var(--card-wide-poster-w);
   height: 100%;
-  flex-shrink: 0;
   background: linear-gradient(100deg, var(--color-surface) 30%, var(--color-surface-raised) 50%, var(--color-surface) 70%);
   background-size: 200% 100%;
   animation: gradientMove 1.5s ease-in-out infinite;
@@ -522,16 +490,15 @@ img {
 
 .loading-card-wide .info-placeholder {
   flex: 1;
-  padding: 16px 20px;
+  padding: 14px 18px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 8px;
-  min-width: 0;
 }
 
 .loading-card-wide .title-placeholder {
-  height: 20px;
+  height: 18px;
   width: 80%;
   background: var(--color-surface-raised);
   border-radius: 4px;
@@ -672,7 +639,7 @@ img {
 .modal-poster {
   width: 100%;
   aspect-ratio: 16 / 9;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
   border-radius: var(--radius-md);
   background: var(--color-surface);
@@ -975,10 +942,11 @@ img {
 .movie-item img {
   width: 100%;
   aspect-ratio: 16 / 9;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: var(--radius-sm);
   margin-bottom: 8px;
   display: block;
+  background: var(--color-surface-raised);
 }
 
 .movie-item h4 {
