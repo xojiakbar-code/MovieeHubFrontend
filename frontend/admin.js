@@ -32,7 +32,54 @@ const addQismBtn = $('addQismBtn');
 
 let editMovieId = null;
 let tokenCheckInterval = null;
-let isLoggingOut = false;
+
+// =========================================================
+// YOUTUBE THUMBNAIL OLISH
+// =========================================================
+
+function getYouTubeThumbnail(url) {
+  if (!url) return null;
+  
+  let videoId = '';
+  if (url.includes('watch?v=')) {
+    videoId = url.split('watch?v=')[1].split('&')[0];
+  } else if (url.includes('youtu.be/')) {
+    videoId = url.split('youtu.be/')[1].split('?')[0];
+  } else if (url.includes('/embed/')) {
+    videoId = url.split('/embed/')[1].split('?')[0];
+  } else if (url.includes('youtube.com/shorts/')) {
+    videoId = url.split('shorts/')[1].split('?')[0];
+  }
+  
+  if (videoId) {
+    return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+  }
+  return null;
+}
+
+function getDefaultImage() {
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="300" height="169" viewBox="0 0 300 169">
+      <rect width="300" height="169" fill="#1a1a1a"/>
+      <circle cx="150" cy="84" r="40" fill="#2a2a2a"/>
+      <text x="150" y="95" font-family="Arial" font-size="30" text-anchor="middle" fill="#444">🎬</text>
+      <text x="150" y="125" font-family="Arial" font-size="12" fill="#555" text-anchor="middle">No Image</text>
+    </svg>
+  `);
+}
+
+function fixImageUrl(url, videoUrl) {
+  if (videoUrl && (videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be'))) {
+    const thumbnail = getYouTubeThumbnail(videoUrl);
+    if (thumbnail) return thumbnail;
+  }
+  
+  if (!url) return getDefaultImage();
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  if (url.startsWith('/uploads/')) return BASE_URL + url;
+  if (url.startsWith('uploads/')) return BASE_URL + '/' + url;
+  return getDefaultImage();
+}
 
 // =========================================================
 // AUTH
@@ -59,13 +106,11 @@ async function verifyToken() {
       const data = await res.json();
       if (data.success) {
         showAdminPanel(data.data);
-        // Token tekshiruvini boshlash (har 30 soniyada)
         startTokenCheck();
       } else {
         handleLogout();
       }
     } else {
-      // 401 - token yaroqsiz (forceLogout bo'lishi mumkin)
       const data = await res.json();
       if (data.forceLogout) {
         showForceLogoutMessage(data.message);
@@ -124,7 +169,7 @@ function showForceLogoutMessage(message) {
 }
 
 // =========================================================
-// TOKEN TEKSHIRUV (Real-time)
+// TOKEN TEKSHIRUV
 // =========================================================
 
 function startTokenCheck() {
@@ -152,9 +197,8 @@ function startTokenCheck() {
       }
     } catch (error) {
       console.log('Token check xatosi:', error.message);
-      // Internet uzilgan bo'lishi mumkin, logout qilmaymiz
     }
-  }, 30000); // Har 30 soniyada tekshiradi
+  }, 30000);
 }
 
 function stopTokenCheck() {
@@ -234,7 +278,7 @@ logoutBtn.addEventListener('click', () => {
 });
 
 // =========================================================
-// SETTINGS - USERNAME VA PAROLNI O'ZGARTIRISH
+// SETTINGS
 // =========================================================
 
 settingsForm.addEventListener('submit', async (e) => {
@@ -245,7 +289,6 @@ settingsForm.addEventListener('submit', async (e) => {
   const newPassword = $('newPassword').value.trim();
   const confirmNewPassword = $('confirmNewPassword').value.trim();
   
-  // Validatsiya
   if (!currentPassword) {
     showSettingsMessage('Joriy parolni kiriting', 'error');
     return;
@@ -261,7 +304,6 @@ settingsForm.addEventListener('submit', async (e) => {
     return;
   }
   
-  // Agar hech narsa o'zgarmasa
   if (!newUsername && !newPassword) {
     showSettingsMessage('Hech qanday o\'zgarish kiritilmadi', 'info');
     return;
@@ -293,7 +335,6 @@ settingsForm.addEventListener('submit', async (e) => {
       throw new Error(data.message || 'Yangilashda xatolik');
     }
     
-    // Yangi tokenni saqlash
     if (data.token) {
       localStorage.setItem('adminToken', data.token);
       localStorage.setItem('adminUsername', data.admin.username);
@@ -301,15 +342,9 @@ settingsForm.addEventListener('submit', async (e) => {
     
     showSettingsMessage('✅ Ma\'lumotlar muvaffaqiyatli yangilandi!', 'success');
     
-    // Formani tozalash
     settingsForm.reset();
     $('newUsername').placeholder = data.admin.username;
     adminUsernameDisplay.textContent = data.admin.username;
-    
-    // Agar username o'zgargan bo'lsa, boshqa qurilmalardagi foydalanuvchilar avtomatik chiqariladi
-    if (newUsername && newUsername !== data.admin.username) {
-      showSettingsMessage('⚠️ Username o\'zgartirildi. Boshqa qurilmalardagi foydalanuvchilar avtomatik tizimdan chiqariladi.', 'info');
-    }
     
   } catch (error) {
     showSettingsMessage('❌ ' + error.message, 'error');
@@ -400,7 +435,7 @@ async function loadMovies() {
 }
 
 // =========================================================
-// RENDER
+// RENDER (YouTube thumbnail bilan)
 // =========================================================
 
 function renderMoviesList(movies) {
@@ -413,25 +448,18 @@ function renderMoviesList(movies) {
     return;
   }
 
-  moviesList.innerHTML = movies.map(movie => {
-    let imgUrl = '';
-    if (movie.rasm) {
-      if (movie.rasm.startsWith('http')) {
-        imgUrl = movie.rasm;
-      } else if (movie.rasm.startsWith('/uploads/')) {
-        imgUrl = BASE_URL + movie.rasm;
-      } else {
-        imgUrl = BASE_URL + '/uploads/' + movie.rasm;
-      }
-    }
+  const defaultImg = getDefaultImage();
 
+  moviesList.innerHTML = movies.map(movie => {
+    const imgUrl = fixImageUrl(movie.rasm, movie.video);
+    
     return `
       <div class="movie-item" data-id="${movie._id}">
         <img 
-          src="${imgUrl || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22300%22%3E%3Crect fill=%22%23222%22 width=%22200%22 height=%22300%22/%3E%3Ctext x=%22100%22 y=%22150%22 font-family=%22Arial%22 font-size=%2230%22 text-anchor=%22middle%22 fill=%22%23666%22%3E🎬%3C/text%3E%3C/svg%3E'}" 
+          src="${imgUrl}" 
           alt="${movie.nomi}"
           loading="lazy"
-          onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22300%22%3E%3Crect fill=%22%23222%22 width=%22200%22 height=%22300%22/%3E%3Ctext x=%22100%22 y=%22150%22 font-family=%22Arial%22 font-size=%2230%22 text-anchor=%22middle%22 fill=%22%23666%22%3E🎬%3C/text%3E%3C/svg%3E'"
+          onerror="this.onerror=null; this.src='${defaultImg}'"
         />
         <h4>${movie.nomi}</h4>
         <p style="color:var(--color-text-secondary);font-size:0.8rem;">
@@ -476,8 +504,8 @@ addQismBtn.addEventListener('click', () => {
       <input type="number" class="qismRaqami" value="${count}" min="1" />
     </div>
     <div class="form-group" style="flex:2;margin:0;">
-      <label>Video URL</label>
-      <input type="text" class="qismVideo" placeholder="Video URL" />
+      <label>Video URL *</label>
+      <input type="text" class="qismVideo" placeholder="https://www.youtube.com/watch?v=xxx" />
     </div>
     <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="margin-top:18px;">✕</button>
   `;
@@ -500,24 +528,22 @@ movieForm.addEventListener('submit', async (e) => {
     tili: $('tili').value.trim(),
     yoshChegarasi: $('yoshChegarasi').value,
     davomiyligi: $('davomiyligi').value.trim(),
-    rasm: $('rasm').value.trim()
+    rasm: $('rasm').value.trim(),
+    video: $('video').value.trim()
   };
 
-  if (movieData.turi === 'film') {
-    movieData.video = $('video').value.trim();
-    movieData.qismlar = [];
-  } else {
-    movieData.video = '';
+  if (movieData.turi === 'serial') {
     const items = qismlarContainer.querySelectorAll('.qism-item');
     movieData.qismlar = Array.from(items).map((item) => ({
       qismRaqami: parseInt(item.querySelector('.qismRaqami').value) || 1,
       video: item.querySelector('.qismVideo').value.trim()
     })).filter(q => q.video);
+  } else {
+    movieData.qismlar = [];
   }
 
   if (!movieData.nomi) { showMessage('Film nomini kiriting', 'error'); return; }
-  if (!movieData.rasm) { showMessage('Poster URL kiriting', 'error'); return; }
-  if (movieData.turi === 'film' && !movieData.video) { showMessage('Video URL kiriting', 'error'); return; }
+  if (!movieData.video && movieData.turi === 'film') { showMessage('Video URL kiriting', 'error'); return; }
   if (movieData.turi === 'serial' && movieData.qismlar.length === 0) { showMessage('Hech bo\'lmaganda bitta qism qo\'shing', 'error'); return; }
 
   const isEdit = editMovieId !== null;
@@ -555,8 +581,8 @@ movieForm.addEventListener('submit', async (e) => {
           <input type="number" class="qismRaqami" value="1" min="1" />
         </div>
         <div class="form-group" style="flex:2;margin:0;">
-          <label>Video URL</label>
-          <input type="text" class="qismVideo" placeholder="Video URL" />
+          <label>Video URL *</label>
+          <input type="text" class="qismVideo" placeholder="https://www.youtube.com/watch?v=xxx" />
         </div>
         <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="margin-top:18px;">✕</button>
       </div>
@@ -603,12 +629,11 @@ async function editMovie(movieId) {
     $('yoshChegarasi').value = movie.yoshChegarasi || '0+';
     $('davomiyligi').value = movie.davomiyligi || '';
     $('rasm').value = movie.rasm || '';
+    $('video').value = movie.video || '';
     
     turiSelect.dispatchEvent(new Event('change'));
     
-    if (movie.turi === 'film') {
-      $('video').value = movie.video || '';
-    } else if (movie.turi === 'serial' && movie.qismlar?.length) {
+    if (movie.turi === 'serial' && movie.qismlar?.length) {
       qismlarContainer.innerHTML = '';
       movie.qismlar.forEach((qism, index) => {
         const div = document.createElement('div');
@@ -619,8 +644,8 @@ async function editMovie(movieId) {
             <input type="number" class="qismRaqami" value="${qism.qismRaqami || index + 1}" min="1" />
           </div>
           <div class="form-group" style="flex:2;margin:0;">
-            <label>Video URL</label>
-            <input type="text" class="qismVideo" value="${qism.video || ''}" placeholder="Video URL" />
+            <label>Video URL *</label>
+            <input type="text" class="qismVideo" value="${qism.video || ''}" placeholder="https://www.youtube.com/watch?v=xxx" />
           </div>
           <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="margin-top:18px;">✕</button>
         `;
