@@ -1,0 +1,4 @@
+Contact: mailto:xojiakbarxasanboyevdev@gmail.com
+Expires: 2027-09-03T00:00:00.000Z
+Preferred-Languages: uz, en
+Canonical: https://movihub.pages.dev/.well-known/security.txt
