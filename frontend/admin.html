@@ -75,9 +75,131 @@
       gap: 16px;
     }
     
+    .form-hint {
+      color: var(--color-text-tertiary);
+      font-size: 0.75rem;
+      margin-top: 4px;
+    }
+    
+    .thumbnail-preview {
+      width: 160px;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      border-radius: var(--radius-sm);
+      margin-top: 8px;
+      background: var(--color-surface-raised);
+      border: 1px solid var(--color-border);
+    }
+    
+    .movie-item img {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      border-radius: var(--radius-sm);
+      margin-bottom: 8px;
+      display: block;
+      background: var(--color-surface-raised);
+    }
+    
+    .qism-item {
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+      background: var(--color-surface-raised);
+      padding: 12px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 10px;
+      border: 0.5px solid var(--color-border);
+    }
+    
+    .qism-item .form-group {
+      margin-bottom: 0;
+      flex: 1;
+    }
+    
+    #addQismBtn {
+      margin: 10px 0 20px 0;
+    }
+    
+    .movies-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+    
+    .movie-item {
+      background: var(--color-surface);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      border: 0.5px solid var(--color-border);
+      transition: border-color var(--duration) var(--ease);
+    }
+    
+    .movie-item:hover {
+      border-color: var(--color-accent);
+    }
+    
+    .movie-item h4 {
+      font-size: 0.9rem;
+      font-weight: var(--font-weight-semibold);
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .movie-item .movie-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    
+    .movie-item .movie-actions button {
+      flex: 1;
+      padding: 5px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 0.8rem;
+      font-weight: var(--font-weight-medium);
+      cursor: pointer;
+      transition: opacity var(--duration) var(--ease);
+    }
+    
+    .movie-item .movie-actions .edit-btn {
+      background: var(--color-accent);
+      color: #fff;
+    }
+    
+    .movie-item .movie-actions .delete-btn {
+      background: var(--color-danger);
+      color: #fff;
+    }
+    
+    .movie-item .movie-actions button:hover {
+      opacity: 0.8;
+    }
+    
+    .video-url-hint {
+      color: var(--color-accent-green);
+      font-size: 0.78rem;
+      background: rgba(52, 199, 89, 0.05);
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      border: 0.5px solid rgba(52, 199, 89, 0.2);
+      margin-top: 4px;
+    }
+    
     @media (max-width: 768px) {
       .form-row {
         grid-template-columns: 1fr;
+      }
+      .qism-item {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .movies-list {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
       }
     }
   </style>
@@ -142,7 +264,7 @@
             <div class="form-group">
               <label for="newUsername">Yangi Username</label>
               <input type="text" id="newUsername" placeholder="Yangi username" />
-              <small style="color:var(--color-text-tertiary);font-size:0.8rem;">Agar o'zgartirmoqchi bo'lmasangiz, bo'sh qoldiring</small>
+              <div class="form-hint">Agar o'zgartirmoqchi bo'lmasangiz, bo'sh qoldiring</div>
             </div>
             
             <div class="form-group">
@@ -153,7 +275,7 @@
             <div class="form-group">
               <label for="newPassword">Yangi Parol</label>
               <input type="password" id="newPassword" placeholder="Yangi parol" />
-              <small style="color:var(--color-text-tertiary);font-size:0.8rem;">Agar o'zgartirmoqchi bo'lmasangiz, bo'sh qoldiring</small>
+              <div class="form-hint">Agar o'zgartirmoqchi bo'lmasangiz, bo'sh qoldiring</div>
             </div>
             
             <div class="form-group">
@@ -229,16 +351,20 @@
             </div>
           </div>
 
-          <!-- Poster -->
+          <!-- Poster rasmi (ixtiyoriy) -->
           <div class="form-group">
-            <label for="rasm">Poster rasmi URL *</label>
-            <input type="text" id="rasm" placeholder="https://i.imgur.com/xxx.jpg" required />
+            <label for="rasm">Poster rasmi URL <span style="color:var(--color-text-tertiary);font-weight:400;">(ixtiyoriy - YouTube dan avtomatik olinadi)</span></label>
+            <input type="text" id="rasm" placeholder="https://i.imgur.com/xxx.jpg (ixtiyoriy)" />
+            <div class="form-hint">Agar YouTube video bo'lsa, thumbnail avtomatik olinadi. Ixtiyoriy.</div>
           </div>
 
-          <!-- Film video -->
+          <!-- Video URL -->
           <div class="form-group" id="videoField">
-            <label for="video">Video URL (film uchun) *</label>
-            <input type="text" id="video" placeholder="https://example.com/video.mp4 yoki YouTube embed" required />
+            <label for="video">Video URL *</label>
+            <input type="text" id="video" placeholder="https://www.youtube.com/watch?v=xxx yoki video.mp4" required />
+            <div class="video-url-hint">
+              💡 YouTube link qo'ysangiz, poster avtomatik olinadi!
+            </div>
           </div>
 
           <!-- Serial qismlari -->
@@ -251,8 +377,8 @@
                   <input type="number" class="qismRaqami" value="1" min="1" />
                 </div>
                 <div class="form-group" style="flex:2;margin:0;">
-                  <label>Video URL</label>
-                  <input type="text" class="qismVideo" placeholder="https://example.com/video.mp4 yoki YouTube embed" />
+                  <label>Video URL *</label>
+                  <input type="text" class="qismVideo" placeholder="https://www.youtube.com/watch?v=xxx" />
                 </div>
                 <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="margin-top:18px;">
                   ✕
