@@ -34,7 +34,7 @@
   --card-poster-ratio: 2 / 3;
   --card-wide-span: 2;
   --card-wide-poster-w: 160px;
-  --card-wide-height: 340px;
+  --card-wide-height: 420px; /* OSHIRILDI */
 }
 
 * {
@@ -335,7 +335,7 @@ img {
 }
 
 .movie-card .movie-info {
-  padding: 10px 14px;
+  padding: 10px 12px;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -362,7 +362,7 @@ img {
 }
 
 /* =========================================================
-   KENG KARTOCHKA
+   KENG KARTOCHKA (WIDE) - BALANDLIGI OSHIRILGAN
    ========================================================= */
 .movie-card-wide {
   grid-column: span var(--card-wide-span);
@@ -437,7 +437,7 @@ img {
 }
 
 /* =========================================================
-   SKELETON KARTALAR - LOADING VAQTIDA (VIDEOLAR O'RNIDA)
+   SKELETON KARTALAR - LOADING VAQTIDA
    ========================================================= */
 .loading-grid {
   display: grid;
@@ -561,7 +561,7 @@ img {
 }
 
 /* =========================================================
-   LOADING OVERLAY - FAQAT KATTA SPINNER UCHUN
+   LOADING OVERLAY
    ========================================================= */
 .loading-overlay {
   display: none;
@@ -1056,7 +1056,7 @@ hr {
   :root {
     --card-min: 160px;
     --card-wide-poster-w: 140px;
-    --card-wide-height: 300px;
+    --card-wide-height: 360px;
   }
   .movies-grid,
   .loading-grid {
@@ -1076,7 +1076,7 @@ hr {
   :root {
     --card-min: 140px;
     --card-wide-poster-w: 120px;
-    --card-wide-height: 260px;
+    --card-wide-height: 300px;
   }
 
   .movies-grid,
@@ -1150,91 +1150,77 @@ hr {
   }
   .modal-right h2 {
     font-size: 1.2rem;
-  }
-  .modal-right .movie-meta span {
+}
+.modal-right .movie-meta span {
     font-size: 0.7rem;
     padding: 2px 10px;
-  }
-  .modal-close {
+}
+.modal-close {
     top: 10px;
     right: 12px;
     width: 32px;
     height: 32px;
     font-size: 1.2rem;
-  }
+}
 
-  .suggestions-container {
+.suggestions-container {
     max-height: 300px;
-  }
-  .age-buttons {
+}
+.age-buttons {
     flex-direction: column;
-  }
-  .age-btn {
+}
+.age-btn {
     width: 100%;
-  }
-  .form-row {
+}
+.form-row {
     grid-template-columns: 1fr;
-  }
-  .qism-item {
+}
+.qism-item {
     flex-direction: column;
     align-items: stretch;
-  }
-  .movies-list {
+}
+.movies-list {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  }
+}
 }
 
 @media (max-width: 480px) {
-  :root {
+:root {
     --card-min: 120px;
     --card-wide-poster-w: 100px;
-    --card-wide-height: 220px;
-  }
-  .movies-grid,
-  .loading-grid {
+    --card-wide-height: 260px;
+}
+.movies-grid,
+.loading-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 8px;
-  }
-  .movie-card-wide,
-  .loading-card-wide {
+}
+.movie-card-wide,
+.loading-card-wide {
     grid-column: span 2;
-  }
-  .logo {
+}
+.logo {
     font-size: 1.1rem;
-  }
-  .admin-login {
+}
+.admin-login {
     padding: 20px;
     margin: 20px 10px;
-  }
-
-  .modal-left {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .modal-poster-container {
-    width: 100%;
-  }
-  .modal-poster {
-    height: 180px;
-    aspect-ratio: auto;
-  }
-
-  .suggestion-item .suggestion-poster {
-    width: 32px;
-    height: 44px;
-  }
 }
 
-/* =========================================================
-   SCREEN READER UCHUN
-   ========================================================= */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  border: 0;
+.modal-left {
+    flex-direction: column;
+    align-items: stretch;
+}
+.modal-poster-container {
+    width: 100%;
+}
+.modal-poster {
+    height: 180px;
+    aspect-ratio: auto;
+}
+
+.suggestion-item .suggestion-poster {
+    width: 32px;
+    height: 44px;
+}
 }
