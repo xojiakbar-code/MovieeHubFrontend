@@ -335,7 +335,7 @@ img {
 }
 
 .movie-card .movie-info {
-  padding: 10px 12px;
+  padding: 10px 14px;
   flex: 1;
   display: flex;
   flex-direction: column;
