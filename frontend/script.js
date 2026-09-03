@@ -1,5 +1,5 @@
 // =========================================================
-// MOVIEHUB FRONTEND - TO'LIQ (AQLLI QIDIRUV BILAN)
+// MOVIEHUB FRONTEND - TO'LIQ (2 KOLONKA, 16:9)
 // =========================================================
 
 const API_URL = 'https://movieehubbackend.onrender.com/api';
@@ -34,49 +34,29 @@ let activeSuggestionIndex = -1;
 // =========================================================
 
 function updateMetaTags(title, description, image, url) {
-  // Title
   if (title) {
     document.title = title + ' | MovieHub';
   }
-
-  // Meta description
   const metaDesc = document.querySelector('meta[name="description"]');
   if (metaDesc && description) {
     metaDesc.content = description;
   }
-
-  // Meta keywords
-  const metaKeywords = document.querySelector('meta[name="keywords"]');
-  if (metaKeywords && title) {
-    const keywords = title.split(' ').slice(0, 3).join(', ') + ', film, serial, kino, MovieHub';
-    metaKeywords.content = keywords;
-  }
-
-  // Open Graph - Title
   const ogTitle = document.querySelector('meta[property="og:title"]');
   if (ogTitle && title) {
     ogTitle.content = title + ' | MovieHub';
   }
-
-  // Open Graph - Description
   const ogDesc = document.querySelector('meta[property="og:description"]');
   if (ogDesc && description) {
     ogDesc.content = description;
   }
-
-  // Open Graph - Image
   const ogImage = document.querySelector('meta[property="og:image"]');
   if (ogImage && image) {
     ogImage.content = image;
   }
-
-  // Open Graph - URL
   const ogUrl = document.querySelector('meta[property="og:url"]');
   if (ogUrl && url) {
     ogUrl.content = url;
   }
-
-  // Canonical URL
   const canonical = document.querySelector('link[rel="canonical"]');
   if (canonical && url) {
     canonical.href = url;
@@ -97,13 +77,13 @@ function hideLoading() {
 }
 
 // =========================================================
-// SKELETON LOADING KARTOCHKALAR
+// SKELETON LOADING
 // =========================================================
 
 function renderLoadingCards() {
   const cards = [];
-  for (let i = 0; i < 8; i++) {
-    const isWide = (i % 3 === 0);
+  for (let i = 0; i < 6; i++) {
+    const isWide = (i % 2 === 0);
     if (isWide) {
       cards.push(`
         <div class="loading-card-wide">
@@ -135,11 +115,11 @@ function renderLoadingCards() {
 
 function getDefaultImage() {
   return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400">
-      <rect width="300" height="400" fill="#1a1a1a"/>
-      <circle cx="150" cy="150" r="60" fill="#2a2a2a"/>
-      <text x="150" y="165" font-family="Arial" font-size="40" text-anchor="middle" fill="#444">🎬</text>
-      <text x="150" y="220" font-family="Arial" font-size="14" fill="#555" text-anchor="middle">No Image</text>
+    <svg xmlns="http://www.w3.org/2000/svg" width="300" height="169" viewBox="0 0 300 169">
+      <rect width="300" height="169" fill="#1a1a1a"/>
+      <circle cx="150" cy="84" r="40" fill="#2a2a2a"/>
+      <text x="150" y="95" font-family="Arial" font-size="30" text-anchor="middle" fill="#444">🎬</text>
+      <text x="150" y="125" font-family="Arial" font-size="12" fill="#555" text-anchor="middle">No Image</text>
     </svg>
   `);
 }
@@ -367,15 +347,6 @@ function selectSuggestion(movieId) {
   openMovie(movieId);
 }
 
-function updateActiveSuggestion(items) {
-  items.forEach((el, i) => {
-    el.classList.toggle('active-suggestion', i === activeSuggestionIndex);
-  });
-  if (activeSuggestionIndex >= 0 && items[activeSuggestionIndex]) {
-    items[activeSuggestionIndex].scrollIntoView({ block: 'nearest' });
-  }
-}
-
 // =========================================================
 // KLAVIATURA BOSHQARUVI
 // =========================================================
@@ -522,7 +493,7 @@ async function loadMovies(search = '') {
 }
 
 // =========================================================
-// RENDER MOVIES
+// RENDER MOVIES - 2 KOLONKA
 // =========================================================
 
 function renderMovies(movies) {
@@ -541,7 +512,7 @@ function renderMovies(movies) {
 
   moviesGrid.innerHTML = movies.map((m, index) => {
     const imgUrl = fixImageUrl(m.rasm);
-    const isWide = (index % 3 === 0);
+    const isWide = (index % 2 === 0);
     const cardClass = isWide ? 'movie-card-wide' : 'movie-card';
 
     return `
@@ -588,7 +559,6 @@ async function openMovie(id) {
     currentMovie = data.data;
     hideLoading();
 
-    // SEO - Meta teglarni yangilash
     updateMetaTags(
       currentMovie.nomi,
       `${currentMovie.nomi} (${currentMovie.yili}) - ${currentMovie.janr}. ${currentMovie.davlati} filmi. ${currentMovie.davomiyligi}`,
@@ -739,7 +709,6 @@ function closeModal() {
   ageModal.classList.remove('active');
   document.body.style.overflow = '';
 
-  // SEO - Meta teglarni qayta tiklash
   updateMetaTags(
     'MovieHub - Kino va Seriallar',
     'O\'zbek tilida bepul filmlar va seriallar. Eng yangi va mashhur kinolarni onlayn tomosha qiling.',
