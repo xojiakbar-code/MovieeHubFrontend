@@ -1,5 +1,5 @@
 // =========================================================
-// MOVIEHUB FRONTEND - TO'LIQ (AQLLI QIDIRUV, HARFLARGA MOSLASHUVCHI)
+// MOVIEHUB FRONTEND - TO'LIQ (SEO + AQLLI QIDIRUV)
 // =========================================================
 
 const API_URL = 'https://movieehubbackend.onrender.com/api';
@@ -28,6 +28,71 @@ let currentVideoPlayer = null;
 let searchTimeout = null;
 let allMovies = [];
 let activeSuggestionIndex = -1;
+
+// =========================================================
+// SEO - META TEGLARNI YANGILASH
+// =========================================================
+
+function updateMetaTags(title, description, image, url) {
+  // Title
+  if (title) {
+    document.title = title + ' | MovieHub';
+  }
+  
+  // Meta description
+  const metaDesc = document.querySelector('meta[name="description"]');
+  if (metaDesc && description) {
+    metaDesc.content = description;
+  }
+  
+  // Meta keywords
+  const metaKeywords = document.querySelector('meta[name="keywords"]');
+  if (metaKeywords && title) {
+    const keywords = title.split(' ').slice(0, 3).join(', ') + ', film, serial, kino, MovieHub';
+    metaKeywords.content = keywords;
+  }
+  
+  // Open Graph - Title
+  const ogTitle = document.querySelector('meta[property="og:title"]');
+  if (ogTitle && title) {
+    ogTitle.content = title + ' | MovieHub';
+  }
+  
+  // Open Graph - Description
+  const ogDesc = document.querySelector('meta[property="og:description"]');
+  if (ogDesc && description) {
+    ogDesc.content = description;
+  }
+  
+  // Open Graph - Image
+  const ogImage = document.querySelector('meta[property="og:image"]');
+  if (ogImage && image) {
+    ogImage.content = image;
+  }
+  
+  // Open Graph - URL
+  const ogUrl = document.querySelector('meta[property="og:url"]');
+  if (ogUrl && url) {
+    ogUrl.content = url;
+  }
+  
+  // Canonical URL
+  const canonical = document.querySelector('link[rel="canonical"]');
+  if (canonical && url) {
+    canonical.href = url;
+  }
+  
+  // Schema.org - JSON-LD yangilash
+  const script = document.querySelector('script[type="application/ld+json"]');
+  if (script && title) {
+    try {
+      const data = JSON.parse(script.textContent);
+      data.name = title;
+      data.description = description || 'MovieHub da tomosha qiling';
+      script.textContent = JSON.stringify(data);
+    } catch(e) {}
+  }
+}
 
 // =========================================================
 // LOADING
@@ -157,7 +222,7 @@ function stopVideo() {
 }
 
 // =========================================================
-// AQLLI QIDIRUV — HARFLARGA MOSLASHUVCHI (FUZZY + SUBSEQUENCE)
+// AQLLI QIDIRUV — HARFLARGA MOSLASHUVCHI
 // =========================================================
 
 const CHAR_CLASS_MAP = {
@@ -167,7 +232,11 @@ const CHAR_CLASS_MAP = {
   'e': 'e', 'i': 'e', 'y': 'e',
   'u': 'u', 'v': 'v', 'w': 'v',
   'g': 'g', "g'": 'g', 'gʻ': 'g', 'ğ': 'g',
-  'x': 'x', 'h': 'x'
+  'x': 'x', 'h': 'x',
+  'b': 'b', 'p': 'b',
+  'd': 'd', 't': 'd',
+  'm': 'm', 'n': 'm',
+  'r': 'r', 'l': 'r'
 };
 
 function normalizeChar(ch) {
@@ -178,6 +247,7 @@ function normalizeString(str) {
   return String(str)
     .toLowerCase()
     .replace(/[’'ʻ`]/g, '')
+    .replace(/\s+/g, '')
     .split('')
     .map(normalizeChar)
     .join('');
@@ -187,11 +257,9 @@ function fuzzyScore(query, name) {
   const q = normalizeString(query.trim());
   const n = normalizeString(name);
 
-  if (!q) return 0;
+  if (!q || !n) return 0;
 
-  if (n.includes(q)) {
-    return 1;
-  }
+  if (n.includes(q)) return 1;
 
   let qi = 0;
   let firstMatch = -1;
@@ -207,9 +275,9 @@ function fuzzyScore(query, name) {
     }
   }
 
-  const coverage = matchedCount / q.length;
-
   if (matchedCount === 0) return 0;
+
+  const coverage = matchedCount / q.length;
 
   if (q.length <= 2) {
     return n.startsWith(q) ? 0.9 : (coverage >= 1 ? 0.5 : 0);
@@ -242,6 +310,10 @@ function getSearchSuggestions(movies, query) {
     .map(x => x.movie);
 }
 
+// =========================================================
+// TAKLIFLARNI KO'RSATISH
+// =========================================================
+
 function escapeHtml(str) {
   return String(str)
     .replace(/&/g, '&amp;')
@@ -261,10 +333,6 @@ function highlightMatch(text, query) {
   const after = text.slice(idx + nQuery.length);
   return `${escapeHtml(before)}<mark style="background:var(--color-accent);color:#fff;border-radius:3px;padding:0 2px;">${escapeHtml(match)}</mark>${escapeHtml(after)}`;
 }
-
-// =========================================================
-// TAKLIFLARNI KO'RSATISH
-// =========================================================
 
 function showSuggestions(movies, query) {
   activeSuggestionIndex = -1;
@@ -324,7 +392,7 @@ function updateActiveSuggestion(items) {
 }
 
 // =========================================================
-// KLAVIATURA BOSHQARUVI (Arrow Up/Down, Enter, Escape)
+// KLAVIATURA BOSHQARUVI
 // =========================================================
 
 searchInput.addEventListener('keydown', function(e) {
@@ -358,7 +426,7 @@ searchInput.addEventListener('keydown', function(e) {
 });
 
 // =========================================================
-// QIDIRUV (ENTER / TUGMA BOSILGANDA)
+// QIDIRUV
 // =========================================================
 
 function runSearch() {
@@ -371,7 +439,6 @@ function runSearch() {
     return;
   }
 
-  // 1) Darhol LOCAL fuzzy natijalarni ko'rsatish
   const localResults = getSearchSuggestions(allMovies, query);
 
   if (localResults.length > 0) {
@@ -380,7 +447,6 @@ function runSearch() {
     renderLoadingCards();
   }
 
-  // 2) Backendga so'rov yuborish
   searchOnServer(query, localResults);
 }
 
@@ -420,7 +486,7 @@ async function searchOnServer(query, fallbackResults) {
 }
 
 // =========================================================
-// FILMLARNI YUKLASH (bosh sahifa / bo'sh qidiruv)
+// FILMLARNI YUKLASH
 // =========================================================
 
 async function loadMovies(search = '') {
@@ -521,7 +587,7 @@ function renderMovies(movies) {
 }
 
 // =========================================================
-// FILMNI OCHISH
+// FILMNI OCHISH (SEO BILAN)
 // =========================================================
 
 async function openMovie(id) {
@@ -536,6 +602,17 @@ async function openMovie(id) {
     if (!data.success) throw new Error(data.message || 'Film topilmadi');
     currentMovie = data.data;
     hideLoading();
+    
+    // =========================================================
+    // SEO - META TEGLARNI YANGILASH
+    // =========================================================
+    updateMetaTags(
+      currentMovie.nomi,
+      `${currentMovie.nomi} (${currentMovie.yili}) - ${currentMovie.janr}. ${currentMovie.davlati} filmi. ${currentMovie.davomiyligi}`,
+      fixImageUrl(currentMovie.rasm),
+      `${window.location.origin}/?film=${currentMovie._id}`
+    );
+    
     const age = currentMovie.yoshChegarasi || '0+';
     if (RESTRICTED_AGES.includes(age)) {
       ageMessage.textContent = `Ushbu film uchun yosh chegarasi ${age} deb belgilangan. Sizning yoshingiz ${age} ga yetarlimi?`;
@@ -678,10 +755,18 @@ function closeModal() {
   movieModal.classList.remove('active');
   ageModal.classList.remove('active');
   document.body.style.overflow = '';
+  
+  // SEO - Meta teglarni qayta tiklash
+  updateMetaTags(
+    'MovieHub - Kino va Seriallar',
+    'O\'zbek tilida bepul filmlar va seriallar. Eng yangi va mashhur kinolarni onlayn tomosha qiling.',
+    'https://movihub.pages.dev/og-image.jpg',
+    'https://movihub.pages.dev/'
+  );
 }
 
 // =========================================================
-// QIDIRUV EVENTS — REAL-TIME
+// QIDIRUV EVENTS
 // =========================================================
 
 searchInput.addEventListener('input', function(e) {
