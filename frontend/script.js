@@ -1,5 +1,5 @@
 // =========================================================
-// MOVIEHUB FRONTEND - TO'LIQ (AQLLI QIDIRUV BILAN)
+// MOVIEHUB FRONTEND - TO'LIQ (YOUTUBE USLUBIDA)
 // =========================================================
 
 const API_URL = 'https://movieehubbackend.onrender.com/api';
@@ -142,10 +142,18 @@ function getDefaultImage() {
 // =========================================================
 
 function fixImageUrl(videoUrl) {
+  // Agar YouTube video bo'lsa, thumbnail olish
   if (videoUrl && (videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be'))) {
     const thumbnail = getYouTubeThumbnail(videoUrl);
     if (thumbnail) return thumbnail;
   }
+  // Agar rasm URL bo'lsa
+  if (videoUrl && (videoUrl.startsWith('http://') || videoUrl.startsWith('https://'))) {
+    if (videoUrl.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)) {
+      return videoUrl;
+    }
+  }
+  // Default rasm
   return getDefaultImage();
 }
 
@@ -465,7 +473,7 @@ async function searchOnServer(query, fallbackResults) {
 }
 
 // =========================================================
-// FILMLARNI YUKLASH - TUZATILGAN
+// FILMLARNI YUKLASH
 // =========================================================
 
 async function loadMovies(search = '') {
@@ -532,7 +540,7 @@ async function loadMovies(search = '') {
 }
 
 // =========================================================
-// RENDER MOVIES - TUZATILGAN
+// RENDER MOVIES - YOUTUBE USLUBIDA (RASMLAR TO'LIQ)
 // =========================================================
 
 function renderMovies(movies) {
@@ -563,7 +571,6 @@ function renderMovies(movies) {
             loading="lazy"
             onerror="this.onerror=null; this.src='${defaultImg}'"
           />
-          <!-- Video davomiyligi - PASTDA O'NGDA -->
           <div class="video-duration">${m.davomiyligi || '2:30'}</div>
         </div>
         <div class="movie-info">
@@ -580,6 +587,7 @@ function renderMovies(movies) {
     `;
   }).join('');
 }
+
 // =========================================================
 // FILMNI OCHISH
 // =========================================================
