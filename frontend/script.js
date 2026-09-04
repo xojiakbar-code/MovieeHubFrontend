@@ -1,5 +1,5 @@
 // =========================================================
-// MOVIEHUB FRONTEND - TO'LIQ (YOUTUBE USLUBIDA)
+// MOVIEHUB FRONTEND - TO'LIQ (KO'RISHLAR O'CHIRILGAN)
 // =========================================================
 
 const API_URL = 'https://movieehubbackend.onrender.com/api';
@@ -545,7 +545,7 @@ async function loadMovies(search = '') {
 }
 
 // =========================================================
-// RENDER MOVIES - YOUTUBE USLUBIDA
+// RENDER MOVIES - KO'RISHLAR O'CHIRILGAN
 // =========================================================
 
 function renderMovies(movies) {
@@ -595,7 +595,6 @@ function renderMovies(movies) {
           <div class="movie-title">${escapeHtml(m.nomi)}</div>
           <div class="movie-meta">
             <span class="channel-name">${escapeHtml(m.davlati || 'MovieHub')}</span>
-            <span class="views">${m.views || 0} ko'rish</span>
             <span class="year">${m.yili}</span>
           </div>
           ${isWide ? `<div class="movie-genre">${escapeHtml(m.janr || '')}</div>` : ''}
