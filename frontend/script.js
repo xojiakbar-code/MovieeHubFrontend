@@ -1,5 +1,5 @@
 // =========================================================
-// MOVIEHUB FRONTEND - TO'LIQ (SKELETON LOADING VA YOUTUBE USLUBIDA)
+// MOVIEHUB FRONTEND - TO'LIQ (AQLLI QIDIRUV BILAN)
 // =========================================================
 
 const API_URL = 'https://movieehubbackend.onrender.com/api';
@@ -177,7 +177,7 @@ function stopVideo() {
 }
 
 // =========================================================
-// SKELETON LOADING KARTOCHKALAR - VIDEO O'RNIDA
+// SKELETON LOADING KARTOCHKALAR
 // =========================================================
 
 function renderLoadingCards() {
@@ -465,7 +465,7 @@ async function searchOnServer(query, fallbackResults) {
 }
 
 // =========================================================
-// FILMLARNI YUKLASH (SKELETON BILAN)
+// FILMLARNI YUKLASH - TUZATILGAN
 // =========================================================
 
 async function loadMovies(search = '') {
@@ -474,8 +474,7 @@ async function loadMovies(search = '') {
     currentAbortController = null;
   }
   
-  // Yuklash vaqtida SKELETON ko'rsatish
-  if (!isFirstLoad) {
+  if (!isFirstLoad && moviesGrid.children.length === 0) {
     renderLoadingCards();
   }
   
@@ -533,7 +532,7 @@ async function loadMovies(search = '') {
 }
 
 // =========================================================
-// RENDER MOVIES - YOUTUBE USLUBIDA (RASMLAR TO'LIQ)
+// RENDER MOVIES
 // =========================================================
 
 function renderMovies(movies) {
@@ -564,7 +563,7 @@ function renderMovies(movies) {
             loading="lazy"
             onerror="this.onerror=null; this.src='${defaultImg}'"
           />
-          <div class="video-duration">${m.davomiyligi || '2:30'}</div>
+          ${isWide ? `<div class="video-duration">${m.davomiyligi || '2:30'}</div>` : ''}
         </div>
         <div class="movie-info">
           <div class="movie-title">${escapeHtml(m.nomi)}</div>
@@ -573,8 +572,7 @@ function renderMovies(movies) {
             <span class="views">${m.views || 0} ko'rish</span>
             <span class="year">${m.yili}</span>
           </div>
-          ${isWide ? `<div class="movie-genre">${escapeHtml(m.janr || '')}</div>` : ''}
-          <div class="movie-description">${escapeHtml(m.turi || '')}</div>
+          <div class="movie-description">${escapeHtml(m.janr || '')}</div>
         </div>
       </div>
     `;
