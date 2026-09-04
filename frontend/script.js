@@ -1,5 +1,5 @@
 // =========================================================
-// MOVIEHUB FRONTEND - YOUTUBE USLUBIDA
+// MOVIEHUB FRONTEND - TO'LIQ (AQLLI QIDIRUV BILAN)
 // =========================================================
 
 const API_URL = 'https://movieehubbackend.onrender.com/api';
@@ -37,8 +37,6 @@ function getYouTubeThumbnail(url) {
   if (!url) return null;
   
   let videoId = '';
-  
-  // YouTube video ID ni olish
   if (url.includes('watch?v=')) {
     videoId = url.split('watch?v=')[1].split('&')[0];
   } else if (url.includes('youtu.be/')) {
@@ -50,11 +48,14 @@ function getYouTubeThumbnail(url) {
   }
   
   if (videoId) {
-    // YouTube thumbnail URL (maxresdefault - eng yuqori sifat)
     return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
   }
-  
   return null;
+}
+
+function isYouTubeUrl(url) {
+  if (!url) return false;
+  return url.includes('youtube.com') || url.includes('youtu.be');
 }
 
 function getYouTubeEmbedUrl(url) {
@@ -72,45 +73,6 @@ function getYouTubeEmbedUrl(url) {
     return `https://www.youtube.com/embed/${videoId}?autoplay=0&rel=0&modestbranding=1&showinfo=0&iv_load_policy=3&controls=1&color=white&disablekb=1&fs=1&hl=uz`;
   }
   return url;
-}
-
-// =========================================================
-// DEFAULT IMAGE (YouTube thumbnail bo'lmasa)
-// =========================================================
-
-function getDefaultImage() {
-  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="300" height="169" viewBox="0 0 300 169">
-      <rect width="300" height="169" fill="#1a1a1a"/>
-      <circle cx="150" cy="84" r="40" fill="#2a2a2a"/>
-      <text x="150" y="95" font-family="Arial" font-size="30" text-anchor="middle" fill="#444">🎬</text>
-      <text x="150" y="125" font-family="Arial" font-size="12" fill="#555" text-anchor="middle">No Image</text>
-    </svg>
-  `);
-}
-
-// =========================================================
-// RASM URL NI TO'G'RILASH (YouTube thumbnail + backend)
-// =========================================================
-
-function fixImageUrl(url, videoUrl) {
-  // 1. Agar YouTube video bo'lsa, thumbnail olish
-  if (videoUrl && isYouTubeUrl(videoUrl)) {
-    const thumbnail = getYouTubeThumbnail(videoUrl);
-    if (thumbnail) return thumbnail;
-  }
-  
-  // 2. Agar rasm URL bo'lsa
-  if (!url) return getDefaultImage();
-  if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  if (url.startsWith('/uploads/')) return BASE_URL + url;
-  if (url.startsWith('uploads/')) return BASE_URL + '/' + url;
-  if (url.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)) {
-    return BASE_URL + '/uploads/' + url;
-  }
-  
-  // 3. Default rasm
-  return getDefaultImage();
 }
 
 // =========================================================
@@ -161,32 +123,38 @@ function hideLoading() {
 }
 
 // =========================================================
-// SKELETON LOADING (YouTube uslubida)
+// DEFAULT IMAGE
 // =========================================================
 
-function renderLoadingCards() {
-  const cards = [];
-  for (let i = 0; i < 6; i++) {
-    cards.push(`
-      <div class="loading-card">
-        <div class="poster-placeholder"></div>
-        <div class="info-placeholder">
-          <div class="title-placeholder"></div>
-          <div class="meta-placeholder"></div>
-        </div>
-      </div>
-    `);
-  }
-  moviesGrid.innerHTML = cards.join('');
+function getDefaultImage() {
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="300" height="169" viewBox="0 0 300 169">
+      <rect width="300" height="169" fill="#1a1a1a"/>
+      <circle cx="150" cy="84" r="40" fill="#2a2a2a"/>
+      <text x="150" y="95" font-family="Arial" font-size="30" text-anchor="middle" fill="#444">🎬</text>
+      <text x="150" y="125" font-family="Arial" font-size="12" fill="#555" text-anchor="middle">No Image</text>
+    </svg>
+  `);
 }
 
 // =========================================================
-// YOUTUBE URL TEKSHIRISH
+// RASM URL NI TO'G'RILASH (YouTube thumbnail)
 // =========================================================
 
-function isYouTubeUrl(url) {
-  if (!url) return false;
-  return url.includes('youtube.com') || url.includes('youtu.be');
+function fixImageUrl(videoUrl) {
+  if (videoUrl && (videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be'))) {
+    const thumbnail = getYouTubeThumbnail(videoUrl);
+    if (thumbnail) return thumbnail;
+  }
+  return getDefaultImage();
+}
+
+function fixVideoUrl(url) {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  if (url.startsWith('/uploads/')) return BASE_URL + url;
+  if (url.startsWith('uploads/')) return BASE_URL + '/' + url;
+  return BASE_URL + '/uploads/' + url;
 }
 
 // =========================================================
@@ -206,6 +174,26 @@ function stopVideo() {
       try { iframe.src = 'about:blank'; } catch(e) {}
     }
   });
+}
+
+// =========================================================
+// SKELETON LOADING KARTOCHKALAR
+// =========================================================
+
+function renderLoadingCards() {
+  const cards = [];
+  for (let i = 0; i < 6; i++) {
+    cards.push(`
+      <div class="loading-card">
+        <div class="poster-placeholder"></div>
+        <div class="info-placeholder">
+          <div class="title-placeholder"></div>
+          <div class="meta-placeholder"></div>
+        </div>
+      </div>
+    `);
+  }
+  moviesGrid.innerHTML = cards.join('');
 }
 
 // =========================================================
@@ -341,14 +329,15 @@ function showSuggestions(movies, query) {
   const topSuggestions = suggestions.slice(0, 6);
 
   suggestionsContainer.innerHTML = topSuggestions.map((m, i) => {
-    const imgUrl = fixImageUrl(m.rasm, m.video);
+    const imgUrl = fixImageUrl(m.video);
+    const titleHtml = highlightMatch(m.nomi, query);
     return `
       <div class="suggestion-item" data-index="${i}" onclick="selectSuggestion('${m._id}')">
         <div class="suggestion-poster">
           <img src="${imgUrl}" alt="${escapeHtml(m.nomi)}" onerror="this.src='${getDefaultImage()}'" />
         </div>
         <div class="suggestion-info">
-          <div class="suggestion-title">${highlightMatch(m.nomi, query)}</div>
+          <div class="suggestion-title">${titleHtml}</div>
           <div class="suggestion-meta">${m.yili} • ${m.janr}</div>
         </div>
       </div>
@@ -423,7 +412,7 @@ function runSearch() {
 
   const localResults = getSearchSuggestions(allMovies, query);
 
-  if (localResults.length > 0) {
+  if (localResults && localResults.length > 0) {
     renderMovies(localResults);
   } else {
     renderLoadingCards();
@@ -437,13 +426,18 @@ async function searchOnServer(query, fallbackResults) {
     currentAbortController.abort();
     currentAbortController = null;
   }
+  
   currentAbortController = new AbortController();
   const signal = currentAbortController.signal;
 
   try {
-    const timeoutId = setTimeout(() => { if (currentAbortController) currentAbortController.abort(); }, 10000);
+    const timeoutId = setTimeout(() => { 
+      if (currentAbortController) currentAbortController.abort(); 
+    }, 15000);
+    
     const res = await fetch(`${API_URL}/movies/search?q=${encodeURIComponent(query)}`, { signal });
     clearTimeout(timeoutId);
+    
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     if (!data.success) throw new Error(data.message || 'Xatolik');
@@ -452,15 +446,18 @@ async function searchOnServer(query, fallbackResults) {
 
     if (serverResults.length > 0) {
       renderMovies(serverResults);
-    } else if (fallbackResults.length > 0) {
+    } else if (fallbackResults && fallbackResults.length > 0) {
       renderMovies(fallbackResults);
     } else {
       renderMovies([]);
     }
   } catch (error) {
-    if (error.name === 'AbortError') return;
+    if (error.name === 'AbortError') {
+      console.log('⏳ Qidiruv so\'rovi bekor qilindi (kutilgan)');
+      return;
+    }
     console.error('Qidiruv xatosi:', error);
-    if (fallbackResults.length > 0) {
+    if (fallbackResults && fallbackResults.length > 0) {
       renderMovies(fallbackResults);
     }
   }
@@ -468,7 +465,7 @@ async function searchOnServer(query, fallbackResults) {
 }
 
 // =========================================================
-// FILMLARNI YUKLASH
+// FILMLARNI YUKLASH - TUZATILGAN
 // =========================================================
 
 async function loadMovies(search = '') {
@@ -476,36 +473,51 @@ async function loadMovies(search = '') {
     currentAbortController.abort();
     currentAbortController = null;
   }
+  
   if (!isFirstLoad && moviesGrid.children.length === 0) {
     renderLoadingCards();
   }
+  
   currentAbortController = new AbortController();
   const signal = currentAbortController.signal;
+  
   try {
     const url = search ? `${API_URL}/movies/search?q=${encodeURIComponent(search)}` : `${API_URL}/movies`;
-    const timeoutId = setTimeout(() => { if (currentAbortController) currentAbortController.abort(); }, 10000);
+    
+    const timeoutId = setTimeout(() => {
+      if (currentAbortController) {
+        currentAbortController.abort();
+        console.log('⏳ So\'rov vaqti tugadi (15s)');
+      }
+    }, 15000);
+    
     const res = await fetch(url, { signal });
     clearTimeout(timeoutId);
+    
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    
     const data = await res.json();
     if (!data.success) throw new Error(data.message || 'Xatolik');
-
+    
     const results = data.data || [];
-
+    
     if (!search) {
       allMovies = results;
     }
-
+    
     renderMovies(results);
     isFirstLoad = false;
+    
   } catch (error) {
     console.error('Yuklash xatosi:', error);
+    
     if (error.name === 'AbortError') {
       if (!isFirstLoad) {
-        moviesGrid.innerHTML = `<div style="text-align:center;color:var(--color-text-secondary);padding:40px;grid-column:1/-1;">⏳ So'rov bekor qilindi</div>`;
+        console.log('⏳ So\'rov bekor qilindi (kutilgan)');
       }
       return;
     }
+    
     moviesGrid.innerHTML = `
       <div style="text-align:center;color:var(--color-danger);padding:40px;grid-column:1/-1;">
         ❌ Xatolik: ${error.message}
@@ -514,12 +526,13 @@ async function loadMovies(search = '') {
       </div>
     `;
   }
+  
   hideLoading();
   currentAbortController = null;
 }
 
 // =========================================================
-// RENDER MOVIES - YOUTUBE USLUBIDA
+// RENDER MOVIES
 // =========================================================
 
 function renderMovies(movies) {
@@ -537,12 +550,11 @@ function renderMovies(movies) {
   const defaultImg = getDefaultImage();
 
   moviesGrid.innerHTML = movies.map((m, index) => {
-    // YouTube thumbnail dan rasm olish
-    const imgUrl = fixImageUrl(m.rasm, m.video);
+    const imgUrl = fixImageUrl(m.video);
     const isWide = (index % 2 === 0);
     
     return `
-      <div class="movie-card" onclick="openMovie('${m._id}')">
+      <div class="${isWide ? 'movie-card-wide' : 'movie-card'}" onclick="openMovie('${m._id}')">
         <div class="poster-wrap">
           <img
             src="${imgUrl}"
@@ -568,14 +580,14 @@ function renderMovies(movies) {
 }
 
 // =========================================================
-// FILMNI OCHISH (SEO BILAN)
+// FILMNI OCHISH
 // =========================================================
 
 async function openMovie(id) {
   showLoading('Film yuklanmoqda...');
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
     const res = await fetch(`${API_URL}/movies/${id}`, { signal: controller.signal });
     clearTimeout(timeoutId);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -587,7 +599,7 @@ async function openMovie(id) {
     updateMetaTags(
       currentMovie.nomi,
       `${currentMovie.nomi} (${currentMovie.yili}) - ${currentMovie.janr}. ${currentMovie.davlati} filmi. ${currentMovie.davomiyligi}`,
-      fixImageUrl(currentMovie.rasm, currentMovie.video),
+      fixImageUrl(currentMovie.video),
       `${window.location.origin}/?film=${currentMovie._id}`
     );
 
@@ -601,7 +613,7 @@ async function openMovie(id) {
   } catch (error) {
     hideLoading();
     if (error.name === 'AbortError') {
-      alert('⏳ So\'rov uzoq davom etmoqda. Qayta urinib ko\'ring.');
+      console.log('⏳ Film ochish so\'rovi bekor qilindi');
     } else {
       alert('❌ Xatolik: ' + error.message);
     }
@@ -614,7 +626,7 @@ async function openMovie(id) {
 
 function showDetails(m) {
   const defaultImg = getDefaultImage();
-  const posterUrl = fixImageUrl(m.rasm, m.video);
+  const posterUrl = fixImageUrl(m.video);
   let videoHtml = '', qismlarHtml = '';
 
   if (m.turi === 'film') {
@@ -624,7 +636,8 @@ function showDetails(m) {
         const embedUrl = getYouTubeEmbedUrl(videoUrl);
         videoHtml = `<div class="modal-video"><iframe src="${embedUrl}" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" loading="lazy" sandbox="allow-same-origin allow-scripts allow-popups allow-forms"></iframe></div>`;
       } else {
-        videoHtml = `<div class="modal-video"><video controls width="100%" id="player" preload="metadata"><source src="${videoUrl}" type="video/mp4" /></video></div>`;
+        const fixedUrl = fixVideoUrl(videoUrl);
+        videoHtml = `<div class="modal-video"><video controls width="100%" id="player" preload="metadata"><source src="${fixedUrl}" type="video/mp4" /></video></div>`;
       }
     } else {
       videoHtml = `<p style="color:var(--color-text-secondary);padding:20px;">🎬 Video mavjud emas</p>`;
@@ -636,7 +649,8 @@ function showDetails(m) {
         const embedUrl = getYouTubeEmbedUrl(firstVideo);
         videoHtml = `<div class="modal-video"><iframe src="${embedUrl}" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" loading="lazy" sandbox="allow-same-origin allow-scripts allow-popups allow-forms"></iframe></div>`;
       } else {
-        videoHtml = `<div class="modal-video"><video controls width="100%" id="player" preload="metadata"><source src="${firstVideo}" type="video/mp4" /></video></div>`;
+        const fixedUrl = fixVideoUrl(firstVideo);
+        videoHtml = `<div class="modal-video"><video controls width="100%" id="player" preload="metadata"><source src="${fixedUrl}" type="video/mp4" /></video></div>`;
       }
     } else {
       videoHtml = `<p style="color:var(--color-text-secondary);padding:20px;">📺 Video mavjud emas</p>`;
@@ -709,7 +723,8 @@ function playQism(index) {
     const embedUrl = getYouTubeEmbedUrl(videoUrl);
     videoContainer.innerHTML = `<iframe src="${embedUrl}" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" loading="lazy" sandbox="allow-same-origin allow-scripts allow-popups allow-forms"></iframe>`;
   } else {
-    videoContainer.innerHTML = `<video controls width="100%" id="player" preload="metadata"><source src="${videoUrl}" type="video/mp4" /></video>`;
+    const fixedUrl = fixVideoUrl(videoUrl);
+    videoContainer.innerHTML = `<video controls width="100%" id="player" preload="metadata"><source src="${fixedUrl}" type="video/mp4" /></video>`;
   }
   setTimeout(() => {
     currentVideoPlayer = document.getElementById('player');
