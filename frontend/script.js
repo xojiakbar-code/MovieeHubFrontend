@@ -1,5 +1,5 @@
 // =========================================================
-// MOVIEHUB FRONTEND - TO'LIQ (AQLLI QIDIRUV BILAN)
+// MOVIEHUB FRONTEND - TO'LIQ (YOUTUBE USLUBIDA)
 // =========================================================
 
 const API_URL = 'https://movieehubbackend.onrender.com/api';
@@ -465,7 +465,7 @@ async function searchOnServer(query, fallbackResults) {
 }
 
 // =========================================================
-// FILMLARNI YUKLASH - TUZATILGAN
+// FILMLARNI YUKLASH
 // =========================================================
 
 async function loadMovies(search = '') {
@@ -474,7 +474,7 @@ async function loadMovies(search = '') {
     currentAbortController = null;
   }
   
-  if (!isFirstLoad && moviesGrid.children.length === 0) {
+  if (!isFirstLoad) {
     renderLoadingCards();
   }
   
@@ -532,7 +532,7 @@ async function loadMovies(search = '') {
 }
 
 // =========================================================
-// RENDER MOVIES
+// RENDER MOVIES - YOUTUBE USLUBIDA
 // =========================================================
 
 function renderMovies(movies) {
@@ -553,6 +553,20 @@ function renderMovies(movies) {
     const imgUrl = fixImageUrl(m.video);
     const isWide = (index % 2 === 0);
     
+    // Davomiylikni formatlash
+    let duration = m.davomiyligi || '2:30';
+    if (duration.includes('soat') || duration.includes('minut')) {
+      // O'zbekcha formatdan raqamli formatga o'tkazish
+      const hours = duration.match(/(\d+)\s*soat/);
+      const mins = duration.match(/(\d+)\s*minut/);
+      if (hours || mins) {
+        let h = hours ? parseInt(hours[1]) : 0;
+        let m = mins ? parseInt(mins[1]) : 0;
+        duration = `${h}:${String(m).padStart(2, '0')}`;
+        if (h === 0) duration = `0:${String(m).padStart(2, '0')}`;
+      }
+    }
+    
     return `
       <div class="${isWide ? 'movie-card-wide' : 'movie-card'}" onclick="openMovie('${m._id}')">
         <div class="poster-wrap">
@@ -563,7 +577,7 @@ function renderMovies(movies) {
             loading="lazy"
             onerror="this.onerror=null; this.src='${defaultImg}'"
           />
-          ${isWide ? `<div class="video-duration">${m.davomiyligi || '2:30'}</div>` : ''}
+          <div class="video-duration">${duration}</div>
         </div>
         <div class="movie-info">
           <div class="movie-title">${escapeHtml(m.nomi)}</div>
@@ -572,7 +586,8 @@ function renderMovies(movies) {
             <span class="views">${m.views || 0} ko'rish</span>
             <span class="year">${m.yili}</span>
           </div>
-          <div class="movie-description">${escapeHtml(m.janr || '')}</div>
+          ${isWide ? `<div class="movie-genre">${escapeHtml(m.janr || '')}</div>` : ''}
+          <div class="movie-description">${escapeHtml(m.turi || '')}</div>
         </div>
       </div>
     `;
