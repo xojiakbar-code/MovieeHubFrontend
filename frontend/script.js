@@ -1,5 +1,5 @@
 // =========================================================
-// MOVIEHUB FRONTEND - TO'LIQ (YOUTUBE USLUBIDA)
+// MOVIEHUB FRONTEND - TO'LIQ (SKELETON LOADING VA YOUTUBE USLUBIDA)
 // =========================================================
 
 const API_URL = 'https://movieehubbackend.onrender.com/api';
@@ -142,18 +142,10 @@ function getDefaultImage() {
 // =========================================================
 
 function fixImageUrl(videoUrl) {
-  // Agar YouTube video bo'lsa, thumbnail olish
   if (videoUrl && (videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be'))) {
     const thumbnail = getYouTubeThumbnail(videoUrl);
     if (thumbnail) return thumbnail;
   }
-  // Agar rasm URL bo'lsa
-  if (videoUrl && (videoUrl.startsWith('http://') || videoUrl.startsWith('https://'))) {
-    if (videoUrl.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)) {
-      return videoUrl;
-    }
-  }
-  // Default rasm
   return getDefaultImage();
 }
 
@@ -185,7 +177,7 @@ function stopVideo() {
 }
 
 // =========================================================
-// SKELETON LOADING KARTOCHKALAR
+// SKELETON LOADING KARTOCHKALAR - VIDEO O'RNIDA
 // =========================================================
 
 function renderLoadingCards() {
@@ -473,7 +465,7 @@ async function searchOnServer(query, fallbackResults) {
 }
 
 // =========================================================
-// FILMLARNI YUKLASH
+// FILMLARNI YUKLASH (SKELETON BILAN)
 // =========================================================
 
 async function loadMovies(search = '') {
@@ -482,7 +474,8 @@ async function loadMovies(search = '') {
     currentAbortController = null;
   }
   
-  if (!isFirstLoad && moviesGrid.children.length === 0) {
+  // Yuklash vaqtida SKELETON ko'rsatish
+  if (!isFirstLoad) {
     renderLoadingCards();
   }
   
