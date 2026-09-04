@@ -1,5 +1,5 @@
 // =========================================================
-// MOVIEHUB FRONTEND - TO'LIQ (KO'RISHLAR O'CHIRILGAN)
+// MOVIEHUB FRONTEND - TO'LIQ (AQLLI QIDIRUV BILAN)
 // =========================================================
 
 const API_URL = 'https://movieehubbackend.onrender.com/api';
@@ -183,28 +183,15 @@ function stopVideo() {
 function renderLoadingCards() {
   const cards = [];
   for (let i = 0; i < 6; i++) {
-    const isWide = (i % 2 === 0);
-    if (isWide) {
-      cards.push(`
-        <div class="loading-card-wide">
-          <div class="poster-placeholder"></div>
-          <div class="info-placeholder">
-            <div class="title-placeholder"></div>
-            <div class="meta-placeholder"></div>
-          </div>
+    cards.push(`
+      <div class="loading-card">
+        <div class="poster-placeholder"></div>
+        <div class="info-placeholder">
+          <div class="title-placeholder"></div>
+          <div class="meta-placeholder"></div>
         </div>
-      `);
-    } else {
-      cards.push(`
-        <div class="loading-card">
-          <div class="poster-placeholder"></div>
-          <div class="info-placeholder">
-            <div class="title-placeholder"></div>
-            <div class="meta-placeholder"></div>
-          </div>
-        </div>
-      `);
-    }
+      </div>
+    `);
   }
   moviesGrid.innerHTML = cards.join('');
 }
@@ -478,7 +465,7 @@ async function searchOnServer(query, fallbackResults) {
 }
 
 // =========================================================
-// FILMLARNI YUKLASH
+// FILMLARNI YUKLASH - TUZATILGAN
 // =========================================================
 
 async function loadMovies(search = '') {
@@ -487,7 +474,7 @@ async function loadMovies(search = '') {
     currentAbortController = null;
   }
   
-  if (!isFirstLoad) {
+  if (!isFirstLoad && moviesGrid.children.length === 0) {
     renderLoadingCards();
   }
   
@@ -545,7 +532,7 @@ async function loadMovies(search = '') {
 }
 
 // =========================================================
-// RENDER MOVIES - KO'RISHLAR O'CHIRILGAN
+// RENDER MOVIES
 // =========================================================
 
 function renderMovies(movies) {
@@ -566,19 +553,6 @@ function renderMovies(movies) {
     const imgUrl = fixImageUrl(m.video);
     const isWide = (index % 2 === 0);
     
-    // Davomiylikni formatlash
-    let duration = m.davomiyligi || '2:30';
-    if (duration.includes('soat') || duration.includes('minut')) {
-      const hours = duration.match(/(\d+)\s*soat/);
-      const mins = duration.match(/(\d+)\s*minut/);
-      if (hours || mins) {
-        let h = hours ? parseInt(hours[1]) : 0;
-        let m = mins ? parseInt(mins[1]) : 0;
-        duration = `${h}:${String(m).padStart(2, '0')}`;
-        if (h === 0) duration = `0:${String(m).padStart(2, '0')}`;
-      }
-    }
-    
     return `
       <div class="${isWide ? 'movie-card-wide' : 'movie-card'}" onclick="openMovie('${m._id}')">
         <div class="poster-wrap">
@@ -589,16 +563,16 @@ function renderMovies(movies) {
             loading="lazy"
             onerror="this.onerror=null; this.src='${defaultImg}'"
           />
-          <div class="video-duration">${duration}</div>
+          ${isWide ? `<div class="video-duration">${m.davomiyligi || '2:30'}</div>` : ''}
         </div>
         <div class="movie-info">
           <div class="movie-title">${escapeHtml(m.nomi)}</div>
           <div class="movie-meta">
             <span class="channel-name">${escapeHtml(m.davlati || 'MovieHub')}</span>
+            <span class="views">${m.views || 0} ko'rish</span>
             <span class="year">${m.yili}</span>
           </div>
-          ${isWide ? `<div class="movie-genre">${escapeHtml(m.janr || '')}</div>` : ''}
-          <div class="movie-description">${escapeHtml(m.turi || '')}</div>
+          <div class="movie-description">${escapeHtml(m.janr || '')}</div>
         </div>
       </div>
     `;
