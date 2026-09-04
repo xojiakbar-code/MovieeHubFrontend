@@ -532,7 +532,7 @@ async function loadMovies(search = '') {
 }
 
 // =========================================================
-// RENDER MOVIES
+// RENDER MOVIES - TUZATILGAN
 // =========================================================
 
 function renderMovies(movies) {
@@ -563,7 +563,8 @@ function renderMovies(movies) {
             loading="lazy"
             onerror="this.onerror=null; this.src='${defaultImg}'"
           />
-          ${isWide ? `<div class="video-duration">${m.davomiyligi || '2:30'}</div>` : ''}
+          <!-- Video davomiyligi - PASTDA O'NGDA -->
+          <div class="video-duration">${m.davomiyligi || '2:30'}</div>
         </div>
         <div class="movie-info">
           <div class="movie-title">${escapeHtml(m.nomi)}</div>
@@ -572,13 +573,13 @@ function renderMovies(movies) {
             <span class="views">${m.views || 0} ko'rish</span>
             <span class="year">${m.yili}</span>
           </div>
-          <div class="movie-description">${escapeHtml(m.janr || '')}</div>
+          ${isWide ? `<div class="movie-genre">${escapeHtml(m.janr || '')}</div>` : ''}
+          <div class="movie-description">${escapeHtml(m.turi || '')}</div>
         </div>
       </div>
     `;
   }).join('');
 }
-
 // =========================================================
 // FILMNI OCHISH
 // =========================================================
