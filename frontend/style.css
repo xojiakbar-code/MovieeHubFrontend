@@ -69,7 +69,7 @@ a {
 }
 
 /* =========================================================
-   HEADER
+   HEADER (YouTube uslubida)
    ========================================================= */
 .header {
   background: rgba(10, 10, 10, 0.8);
@@ -219,7 +219,6 @@ a {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center;
 }
 
 .suggestion-item .suggestion-info {
@@ -262,7 +261,7 @@ a {
 }
 
 /* =========================================================
-   MOVIES GRID
+   MOVIES GRID - YouTube uslubida
    ========================================================= */
 .main-content {
   padding: 24px 0 40px;
@@ -277,7 +276,7 @@ a {
 }
 
 /* =========================================================
-   ODDIY KARTOCHKA
+   KARTOCHKA - YouTube uslubida
    ========================================================= */
 .movie-card {
   background: var(--color-surface);
@@ -310,19 +309,18 @@ a {
   display: block;
 }
 
-/* Video davomiyligi - PASTDA O'NGDA */
+/* Video davomiyligi (YouTube uslubida) */
 .video-duration {
   position: absolute;
   bottom: 8px;
   right: 8px;
   background: rgba(0, 0, 0, 0.85);
   color: #fff;
-  padding: 3px 8px;
+  padding: 2px 6px;
   border-radius: 4px;
   font-size: 0.75rem;
   font-weight: var(--font-weight-medium);
   letter-spacing: 0.3px;
-  z-index: 5;
 }
 
 .movie-card .movie-info {
@@ -355,6 +353,12 @@ a {
   color: var(--color-text-secondary);
 }
 
+.movie-card .views::before {
+  content: "•";
+  margin-right: 6px;
+  color: var(--color-text-tertiary);
+}
+
 .movie-card .year::before {
   content: "•";
   margin-right: 6px;
@@ -368,95 +372,6 @@ a {
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  margin-top: 2px;
-}
-
-/* =========================================================
-   KENG KARTOCHKA (WIDE)
-   ========================================================= */
-.movie-card-wide {
-  background: var(--color-surface);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  cursor: pointer;
-  border: 1px solid var(--color-border);
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-  display: flex;
-  flex-direction: row;
-  height: 200px;
-  min-height: 200px;
-  max-height: 200px;
-}
-
-.movie-card-wide:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-md);
-  border-color: var(--color-accent);
-}
-
-.movie-card-wide .poster-wrap {
-  position: relative;
-  width: 160px;
-  height: 100%;
-  overflow: hidden;
-  background: var(--color-surface-raised);
-  flex-shrink: 0;
-}
-
-.movie-card-wide .movie-poster {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  display: block;
-}
-
-/* Video davomiyligi - keng kartochka uchun */
-.movie-card-wide .video-duration {
-  position: absolute;
-  bottom: 6px;
-  right: 6px;
-  background: rgba(0, 0, 0, 0.85);
-  color: #fff;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  font-weight: var(--font-weight-medium);
-  z-index: 5;
-}
-
-.movie-card-wide .movie-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 14px 18px;
-  gap: 4px;
-  min-width: 0;
-}
-
-.movie-card-wide .movie-title {
-  font-size: 1.05rem;
-  font-weight: var(--font-weight-semibold);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  line-height: 1.3;
-}
-
-.movie-card-wide .movie-meta {
-  display: flex;
-  gap: 10px;
-  color: var(--color-text-secondary);
-  font-size: 0.78rem;
-  flex-wrap: wrap;
-}
-
-.movie-card-wide .movie-genre {
-  color: var(--color-accent);
-  font-size: 0.78rem;
-  font-weight: var(--font-weight-medium);
   margin-top: 2px;
 }
 
@@ -496,52 +411,6 @@ a {
 .loading-card .meta-placeholder {
   height: 12px;
   width: 55%;
-  background: var(--color-surface-raised);
-  border-radius: 4px;
-}
-
-.loading-card-wide {
-  grid-column: span 2;
-  background: var(--color-surface);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  border: 1px solid var(--color-border);
-  display: flex;
-  flex-direction: row;
-  height: 200px;
-  min-height: 200px;
-  max-height: 200px;
-  animation: shimmer 1.2s ease-in-out infinite;
-}
-
-.loading-card-wide .poster-placeholder {
-  width: 160px;
-  height: 100%;
-  flex-shrink: 0;
-  background: linear-gradient(100deg, var(--color-surface) 30%, var(--color-surface-raised) 50%, var(--color-surface) 70%);
-  background-size: 200% 100%;
-  animation: gradientMove 1.5s ease-in-out infinite;
-}
-
-.loading-card-wide .info-placeholder {
-  flex: 1;
-  padding: 16px 20px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 8px;
-}
-
-.loading-card-wide .title-placeholder {
-  height: 20px;
-  width: 80%;
-  background: var(--color-surface-raised);
-  border-radius: 4px;
-}
-
-.loading-card-wide .meta-placeholder {
-  height: 14px;
-  width: 60%;
   background: var(--color-surface-raised);
   border-radius: 4px;
 }
@@ -1047,14 +916,6 @@ hr {
 /* =========================================================
    RESPONSIVE
    ========================================================= */
-@media (max-width: 1024px) {
-  .movies-grid,
-  .loading-grid {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 16px;
-  }
-}
-
 @media (max-width: 768px) {
   .header-content {
     flex-direction: column;
@@ -1066,47 +927,21 @@ hr {
 
   .movies-grid,
   .loading-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr 1fr;
     gap: 12px;
   }
-
-  .movie-card-wide {
-    height: 160px;
-    min-height: 160px;
-    max-height: 160px;
+  
+  .movie-card .movie-title {
+    font-size: 0.85rem;
   }
-
-  .movie-card-wide .poster-wrap {
-    width: 120px;
+  
+  .movie-card .movie-meta {
+    font-size: 0.7rem;
+    gap: 4px;
   }
-
-  .movie-card-wide .movie-info {
-    padding: 12px 14px;
-  }
-
-  .movie-card-wide .movie-title {
-    font-size: 0.95rem;
-  }
-
-  .movie-card-wide .movie-meta {
-    font-size: 0.72rem;
-    gap: 6px;
-  }
-
-  .movie-card-wide .movie-genre {
-    font-size: 0.72rem;
-  }
-
-  .loading-card-wide {
-    grid-column: span 1;
-    flex-direction: column;
-    height: auto;
-    min-height: 0;
-  }
-
-  .loading-card-wide .poster-placeholder {
-    width: 100%;
-    height: 200px;
+  
+  .movie-card .movie-description {
+    font-size: 0.7rem;
   }
 
   .modal-content {
@@ -1194,33 +1029,6 @@ hr {
   .loading-grid {
     grid-template-columns: 1fr;
     gap: 10px;
-  }
-
-  .movie-card-wide {
-    height: 140px;
-    min-height: 140px;
-    max-height: 140px;
-  }
-
-  .movie-card-wide .poster-wrap {
-    width: 100px;
-  }
-
-  .movie-card-wide .movie-info {
-    padding: 10px 12px;
-  }
-
-  .movie-card-wide .movie-title {
-    font-size: 0.85rem;
-  }
-
-  .movie-card-wide .movie-meta {
-    font-size: 0.65rem;
-    gap: 4px;
-  }
-
-  .movie-card-wide .movie-genre {
-    font-size: 0.65rem;
   }
 
   .logo {
