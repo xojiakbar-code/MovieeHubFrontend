@@ -183,15 +183,28 @@ function stopVideo() {
 function renderLoadingCards() {
   const cards = [];
   for (let i = 0; i < 6; i++) {
-    cards.push(`
-      <div class="loading-card">
-        <div class="poster-placeholder"></div>
-        <div class="info-placeholder">
-          <div class="title-placeholder"></div>
-          <div class="meta-placeholder"></div>
+    const isWide = (i % 2 === 0);
+    if (isWide) {
+      cards.push(`
+        <div class="loading-card-wide">
+          <div class="poster-placeholder"></div>
+          <div class="info-placeholder">
+            <div class="title-placeholder"></div>
+            <div class="meta-placeholder"></div>
+          </div>
         </div>
-      </div>
-    `);
+      `);
+    } else {
+      cards.push(`
+        <div class="loading-card">
+          <div class="poster-placeholder"></div>
+          <div class="info-placeholder">
+            <div class="title-placeholder"></div>
+            <div class="meta-placeholder"></div>
+          </div>
+        </div>
+      `);
+    }
   }
   moviesGrid.innerHTML = cards.join('');
 }
@@ -556,7 +569,6 @@ function renderMovies(movies) {
     // Davomiylikni formatlash
     let duration = m.davomiyligi || '2:30';
     if (duration.includes('soat') || duration.includes('minut')) {
-      // O'zbekcha formatdan raqamli formatga o'tkazish
       const hours = duration.match(/(\d+)\s*soat/);
       const mins = duration.match(/(\d+)\s*minut/);
       if (hours || mins) {
